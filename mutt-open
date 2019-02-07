@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# NAME
+#
+#   mutt-open - open attachments in Mutt using xdg-open
+#
+# SYNOPSIS
+#
+#   mutt-open <file>
+#
+# DESCRIPTION
+#
+#   mutt-open is a helper script to open attachments within Mutt using
+#   xdg-open.  By default, opening attachments with GUI applications
+#   causes issues with Mutt.  Since a message is a single file, when
+#   asked to open an attachment, Mutt extracts it from the message and
+#   stores it in a temporary file.  The problem is that Mutt does not
+#   wait for the application to quit and deletes the temporary file
+#   immediately afterwards.
+#
+#   mutt-open solves this problem by moving the attachment to
+#   a different location (as specified by the variable $tmpdir) before
+#   calling xdg-open.  To use mutt-open, put this in your ~/.mailcap
+#   file:
+#
+#     # If a text/html entry is missing, HTML files will be opened using
+#     # xdg-open, which is probably not what you would want.
+#     text/html; elinks -force-html -dump %s; copiousoutput;
+#     application/*; mutt-open %s
+#     audio/*; mutt-open %s
+#     image/*; mutt-open %s
+#
+# DEPENDENCIES
+#
+#   xdg-open(1)
+#
+
+set -eu
+
+[ "$*" ] || {
+  echo >&2 "usage: ${0##*/} <file>"
+  exit 1
+}
+
+tmpdir="${HOME}/.cache/mutt/attach"
+mkdir -p "$tmpdir"
+
+# We need to sanitize filenames because xdg-open (depending on the
+# GNU/Linux distribution) often creates problems with percent-encoded
+# filenames.
+name=$(printf "${1##*/}" | sed 's/[^a-zA-Z0-9._-]\{1,\}/_/g')
+
+# Don't overwrite files as there could be different attachements with
+# the same name.
+stem="${name%.*}"; ext="${name##*.}"
+while [ -e "${tmpdir}/${name}" ]
+do
+    num=$(( num + 1 ))
+    name="${stem}-${num}.${ext}"
+done
+
+mv -- "$1" "${tmpdir}/${name}"
+nohup xdg-open "${tmpdir}/${name}" >/dev/null </dev/null 2>&1 &

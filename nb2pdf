@@ -1,0 +1,37 @@
+#!/usr/local/bin/WolframScript -script
+(*
+ * NAME
+ *
+ *   nb2pdf - convert Mathematica notebooks to PDFs.
+ *
+ * SYNOPSIS
+ *
+ *   nb2pdf <file>...
+ *
+ * EXAMPLE
+ *
+ *   find -type f -name '*.nb' -exec nb2pdf {} +
+ *
+ * NOTES
+ *
+ *   Adapted from https://superuser.com/a/382064
+ *)
+
+fileList = {};
+scriptName = FileBaseName[First[$ScriptCommandLine]];
+
+If[Length[$ScriptCommandLine] == 1,
+  Print[scriptName <> ": requires at least one file name"]; Exit[1]]
+
+Do[If[FindFile[file] === $Failed,
+  Print[scriptName <> ": file '" <> file <> "' does not exist"],
+  AppendTo[fileList, FindFile[file]]],
+  {file, Rest[$ScriptCommandLine]}]
+
+With[{UFE = UsingFrontEnd},
+ Do[nb = UFE@NotebookOpen[file];
+  (* Expand all cell groups. *)
+  UFE@SelectionMove[nb, All, Notebook];
+  UFE@FrontEndExecute[FrontEndToken["SelectionOpenAllGroups"]];
+  UFE@NotebookPrint[nb, FileBaseName[file]<>".pdf"];
+  UFE@NotebookClose[nb], {file, fileList}]]

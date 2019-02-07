@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# lyrics is a Python 3 script to retrieve lyrics from lyrics.wikia.com.
+# The basic usage is
+#
+#   lyrics [<args>] keyword...
+#
+# For more information on the arguments, run
+#
+#   lyrics --help
+#
+# lyrics can be used to retrieve lyrics for the currently playing song
+# if your audio player is capable of printing the details of the current
+# song on the standard output.
+#
+# * Example with MPD
+#
+#   lyrics $(mpc --format '%artist% %title%' | head -n 1)
+#
+# * Example with DeaDBeeF
+#
+#   lyrics $(deadbeef --nowplaying '%a %t' 2>/dev/null)
+#
+# Requires: Python 3 with BeautifulSoup >= 4.0 and Requests
+#
+
+import argparse
+import os
+import re
+import requests
+import subprocess
+import sys
+from bs4 import BeautifulSoup
+from pydoc import pager
+from unicodedata import normalize
+
+# Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
+SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.wikia.com"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible)",
+    "Referer": "www.google.com"
+}
+
+CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/lyrics")
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
+
+EDITOR = os.environ.get("EDITOR", "vi")
+
+
+class PrintError(Exception):
+    pass
+
+
+def sanitize(string):
+    """Sanitize string."""
+    string = normalize("NFKD", string).encode("ascii", "ignore")
+    string = string.decode("ascii")
+    string = string.lower()
+    string = re.sub(r"[([{][^\]})]*[\]})]", "", string)
+    string = re.sub(r"^\W+", "", string)
+    string = re.sub(r"\W+$", "", string)
+    string = re.sub(r"\W+", "+", string, flags=re.ASCII)
+
+    return string
+
+
+def get_lyrics(keyword):
+    """Extract lyrics from HTML using BeautifulSoup."""
+    keyword = sanitize(keyword)
+    url = "+".join([SEARCH_URL, keyword, "lyrics"])
+    req = requests.get(url, headers=HEADERS)
+
+    # If lxml is available, prefer that.
+    if "lxml" in sys.modules:
+        soup = BeautifulSoup(req.text, features="lxml")
+    else:
+        soup = BeautifulSoup(req.text, features="html.parser")
+
+    # Extract metadata.
+    try:
+        metadata = soup.find("h1", {"class": "page-header__title"}).get_text()
+    except AttributeError:
+        raise PrintError("Error retrieving lyrics for the given keyword.\n" + url)
+
+    match = re.match(r"^([^:]*):(.*) Lyrics$", metadata)
+    if match:
+        artist, title = match.groups()
+    else:
+        raise PrintError("Error extracting metadata from HTML.\n" + req.url)
+
+    # Extract lyrics.
+    lyrics_boxes = soup.find_all("div", {"class": "lyricbox"})
+    if lyrics_boxes is None:
+        raise PrintError("Error extracting lyrics from HTML.\n" + req.url)
+
+    # Remove fluff.
+    lyrics = ""
+    for box in lyrics_boxes:
+        for br in box.find_all("br"):
+            br.replace_with("\n")
+        for script in box.find_all("script"):
+            script.extract()
+        for ringtone in box.find_all(attrs={"class": "rtMatcher"}):
+            ringtone.extract()
+
+        lyrics += box.text.strip() + "\n"
+
+    return artist, title, lyrics, req.url
+
+
+def main():
+    """Argument parsing."""
+    arg_parser = argparse.ArgumentParser(
+        prog="lyrics",
+        description="retrieve lyrics from lyrics.wikia.com using keywords"
+    )
+    arg_parser.add_argument(
+        "-f", "--force", action="store_true", default=False,
+        help="force download lyrics (overwrites cache)"
+    )
+    group = arg_parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-e", "--edit", action="store_true",
+        help="edit cached lyrics file using $EDITOR"
+    )
+    group.add_argument(
+        "-c", "--cat", action="store_true",
+        help="write to stdout instead of using pager"
+    )
+    arg_parser.add_argument("keyword", help="search keywords", nargs="+")
+    args = arg_parser.parse_args()
+
+    keyword = " ".join(args.keyword)
+    cache_file = os.path.join(CACHE_DIR, sanitize(keyword) + ".txt")
+
+    if args.edit:
+        subprocess.call([EDITOR, cache_file])
+        return
+
+    if os.path.exists(cache_file) and not args.force:
+        with open(cache_file, "r") as fd:
+            text = fd.read()
+    else:
+        try:
+            lyrics = get_lyrics(keyword)
+            text = "{} - {}\n---\n\n{}\n{}".format(*lyrics)
+            with open(cache_file, "w") as fd:
+                fd.write(text)
+        except PrintError as e:
+            sys.exit(print(e, file=sys.stderr))
+
+    if args.cat:
+        print(text)
+    else:
+        pager(text)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

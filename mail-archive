@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   mail-archive - rename every message file in a maildir to its date
+#                  and weed redundant headers
+#
+# SYNOPSIS
+#
+#   mail-archive <file>...
+#
+# DESCRIPTION
+#
+#   Often, it is convenient to rename every message in a maildir in
+#   a standardized way (the message's date for instance).  This could be
+#   useful for archiving emails, moving them across different computers,
+#   etc.  This script helps doing that.  Additionally, this script tries
+#   to remove useless mail headers.
+#
+# EXAMPLE
+#
+#   $ find .../path/to/maildir -type f -exec mail-archive {} +
+#
+# DEPENDENCIES
+#
+#   GNU version of date(1) for parsing dates.
+#
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+}
+
+for mail
+do
+    date=$(grep '^[dD]ate:' <"$mail" | head -n 1 | sed 's/^[dD]ate:[[:space:]]*//')
+
+    if [[ -z "$date" ]]
+    then
+        echo >&2 "${0##*/}: no date in ${mail}"
+    else
+        # Canonicalize the date.
+        date=$(date --date="$date" +%Y%m%d%H%M%S 2>/dev/null)
+
+        # Make unique file name.
+        i=0; name=$(printf "%s%03d:2,S" "$date" "$i")
+        while [[ -f "$name" ]]
+        do
+            name=$(printf "%s%03d:2,S" "$date" "$i")
+            i=$((i + 1))
+        done
+
+        # Weed unnecessary headers before archiving email.  There doesn't seem
+        # to be a proper rule for ordering different fields in the message
+        # header, so we will print from the first field that looks useful to
+        # the end of the message.
+        sed -n '/^\(Bcc\|Cc\|Content-Disposition\|Content-Transfer-Encoding\|Content-Type\|Date\|From\|In-Reply-To\|Message-ID\|References\|Reply-To\|Sender\|Subject\|To\|User-Agent\|X-Mailer\):/,$p' <"$mail" >"$name"
+
+        echo >&2 "${0##*/}: processed ${mail}"
+    fi
+done

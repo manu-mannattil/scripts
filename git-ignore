@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   git-ignore - generate .gitignore files using www.gitignore.io
+#
+# SYNOPSIS
+#
+#   git ignore <template>
+#
+# DEPENDENCIES
+#
+#   curl(1)
+#
+
+if [ "$*" ]
+then
+    curl -qsL "http://www.gitignore.io/api/${1}" 2>/dev/null
+else
+    echo >&2 "${0##*/}: requires a template name..."
+    curl -qsL "http://www.gitignore.io/api/list" | sed 's/^\|,/\n/g'
+fi

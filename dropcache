@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# NAME
+#
+#   dropcache - free unused memory
+#
+# SYNOPSIS
+#
+#   dropcache
+#
+# DESCRIPTION
+#
+#   Forces the kernel to drop clean caches, dentries, and inodes from
+#   memory.  See proc(5) for more.
+#
+# DEPENDENCIES
+#
+#   sudo(1)
+#
+
+# Always run as root.
+[ $(id -u) -eq 0 ] || exec sudo -- "$0" "$@"
+
+sync
+
+echo 1 >/proc/sys/vm/drop_caches
+echo 2 >/proc/sys/vm/drop_caches
+echo 3 >/proc/sys/vm/drop_caches

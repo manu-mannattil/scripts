@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pdf-meta-strip - strip metadata from PDF files.
+#
+# SYNOPSIS
+#
+#   pdf-meta-strip <file>...
+#
+# DESCRIPTION
+#
+#   pdf-meta-strip is a script for stripping metadata from PDF files.
+#   A backup of each input file will be made by appending `~' to the
+#   filename and the origial PDF will be replaced with the sanitized
+#   version.
+#
+#   Note that this script does not guarantee 100% metadata removal.
+#   Please do not use it to distribute sensitive PDFs anonymously!  
+#
+# DEPENDENCIES
+#
+#   exiftool, mktemp, pdftk, qpdf
+#
+# SEE ALSO
+#
+#   pdf-redact-tools: https://github.com/firstlookmedia/pdf-redact-tools/
+#
+
+set -e
+
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+if [ "$*" ]
+then
+    for pdf
+    do
+        # Based mostly on: http://tex.stackexchange.com/a/130371
+        meta=$(TMPDIR="$tmpdir" mktemp -t "XXXXXX.meta")
+        pdftk "$pdf" dump_data | sed -e 's|^InfoValue:|InfoValue:|' >"$meta"
+
+        tmppdf=$(TMPDIR="$tmpdir" mktemp -t "XXXXXX.pdf")
+        pdftk "$pdf" update_info "$meta" output "$tmppdf"
+
+        # Replace XMP packets with empty ones.
+        exiftool -overwrite_original -all:all= "$tmppdf"
+
+        # Remove all unreferenced objects including the older XMP packets.
+        cp -f -- "$pdf" "${pdf}~"
+        qpdf --linearize "$tmppdf" "$pdf"
+    done
+else
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+fi

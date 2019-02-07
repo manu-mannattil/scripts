@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# NAME
+#
+#   terminal - run urxvt as a daemon.
+#
+# SYNOPSIS
+#
+#   terminal [<args>...]
+#
+# DEPENDENCIES
+#
+#   urxvtc(1), urxvtd(1)
+#
+
+urxvtc "$@"
+status="$?"
+
+case "$status" in
+    2) urxvtd -q -o -f
+       urxvtc "$@" ;;
+    *) exit "$status" ;;
+esac

@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pbcopy -- copy stdin to the X11 clipboard
+#
+# SYNOPSIS
+#
+#   cmd | pbcopy
+#
+# DESCRIPTION
+#
+#   pbpaste/pbcopy are modeled after the similar macOS commands.
+#
+# DEPENDENCIES
+#
+#   xclip(1) or xsel(1)
+#
+
+if command -v xclip >/dev/null 2>&1
+then
+    exec xclip -selection clipboard
+elif command -v xsel >/dev/null 2>&1
+then
+    exec xsel --clipboard --input
+else
+    echo >&2 "${0##*/}: either xclip or xsel must be installed."
+    exit 1
+fi

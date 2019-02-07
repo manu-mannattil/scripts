@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# NAME
+#
+#   2utf8 - convert text files to UTF-8
+#
+# SYNOPSIS
+#
+#   2utf8 [<file>...]
+#
+# DESCRIPTION
+#
+#   2utf8 first tries to guess the encoding of the given text file using
+#   uchardet(1), or if it is not available, using file(1).  The guess
+#   may or may not be accurate (in general, uchardet(1) is more accurate
+#   that file(1)) and can cause convertion issues.  Once the encoding is
+#   determined, the file is converted using iconv(1).
+#
+# DEPENDENCIES
+#
+#   mktemp(1) and uchardet(1)
+#
+
+[ "$*" ] || {
+    tmpfile="$(mktemp)"
+    trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+    trap 'exit 2' HUP INT QUIT TERM
+
+    cat >"$tmpfile"
+    set -- "$tmpfile"
+}
+
+uchardet() {
+    if command -v uchardet >/dev/null 2>&1
+    then
+        command uchardet "$1"
+    else
+        # If uchardet isn't available try to guess the
+        # encoding using file(1).
+        file --brief --mime-encoding "$1" 2>/dev/null
+    fi
+}
+
+for f
+do
+    enc=$(uchardet "$f")
+    iconv -c -f "${enc%/*}" -t "utf-8" "$f" 2>/dev/null
+done

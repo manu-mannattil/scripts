@@ -1,0 +1,129 @@
+#!/bin/sed -f
+# -*- coding: utf-8 -*-
+#
+# NAME
+#
+#   2ascii - convert UTF-8 punctuation to "equivalent" ASCII
+#
+# SYNOPSIS
+#
+#   2ascii [-i] [<file>...]
+#
+# DESCRIPTION
+#
+#   2ascii is a sed(1) script to convert UTF-8 punctuation to ASCII.
+#   You can sanitize the file further by piping it through iconv:
+#
+#     iconv -c -f utf-8 -t ascii//TRANSLIT [<file>...]
+#
+# OPTIONS
+#
+#   -i  Edit files in place
+#
+
+# Fix (long) dashes.
+s/\([[:alnum:]]\)[–‒—―]\([[:alnum:]]\)/\1 - \2/g
+
+# Punctuation.
+s/[¤]/*/g
+s/[§]/*/g
+s/[©]/(C)/g
+s/[«]/"/g
+s/[­]/-/g
+s/[®]/(R)/g
+s/[°]/deg. /g
+s/[´]/'/g
+s/[»]/"/g
+s/[÷]/\//g
+s/[ǀ]/|/g
+s/[ǃ]/!/g
+s/[ʹ]/'/g
+s/[ʺ]/"/g
+s/[ʼ]/'/g
+s/[˄]/^/g
+s/[ˆ]/^/g
+s/[ˈ]/'/g
+s/[ˋ]/`/g
+s/[ˍ]/_/g
+s/[˜]/~/g
+s/[։]/:/g
+s/[׀]/|/g
+s/[׃]/:/g
+s/[٪]/%/g
+s/[٭]/*/g
+s/[‐]/-/g
+s/[‑]/-/g
+s/[‒]/--/g
+s/[–]/--/g
+s/[—]/--/g
+s/[―]/--/g
+s/[‖]/||/g
+s/[‗]/_/g
+s/[‘]/'/g
+s/[’]/'/g
+s/[‚]/,/g
+s/[‛]/'/g
+s/[“]/"/g
+s/[”]/"/g
+s/[„]/"/g
+s/[‟]/"/g
+s/[…]/.../g
+s/[′]/'/g
+s/[″]/"/g
+s/[‴]/''/g
+s/[‵]/`/g
+s/[‶]/"/g
+s/[‷]/''/g
+s/[‸]/^/g
+s/[‹]/</g
+s/[›]/>/g
+s/[‽]/?/g
+s/[⁄]/\//g
+s/[⁎]/*/g
+s/[⁒]/%/g
+s/[⁓]/~/g
+s/[№]/No./g
+s/[℗]/ (P)/g
+s/[℠]/ (SM)/g
+s/[™]/ (TM)/g
+s/[−]/-/g
+s/[∕]/\//g
+s/[∖]/\\/g
+s/[∗]/*/g
+s/[∣]/|/g
+s/[∶]/:/g
+s/[∼]/~/g
+s/[≤]/<=/g
+s/[≥]/>=/g
+s/[≦]/<=/g
+s/[≧]/>=/g
+s/[⌃]/^/g
+s/[〈]/</g
+s/[〉]/>/g
+s/[◊]/*/g
+s/[♯]/#/g
+s/[✱]/*/g
+s/[❘]/|/g
+s/[❢]/!/g
+s/[⟦]/[/g
+s/[⟨]/</g
+s/[⟩]/>/g
+s/[⦃]/{/g
+s/[⦄]/}/g
+s/[〃]/"/g
+s/[〈]/</g
+s/[〉]/>/g
+s/[〛]/]/g
+s/[〜]/~/g
+s/[〝]/"/g
+s/[〞]/"/g
+
+# Convert n-space separated sentences into two space separated
+# sentences.  This is still buggy as it fails to differentiate between
+# periods used to end sentences, and periods used to shorten words like
+# in "Mrs.".
+s/\([^[:space:]]\{2\}[.!?][`'"]\?\)[[:space:]]\+/\1  /g
+
+# Convert DOS style line ending to *nix style.
+s/\r$//
+s/\r/\n/g

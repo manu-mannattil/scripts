@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   off2txt - headlessly convert LibreOffice/MS Office files to text
+#
+# SYNOPSIS
+#
+#   off2txt <file>...
+#
+# DEPENDENCIES
+#
+#   libreoffice(1)
+#
+
+if [ "$*" ]
+then
+    libreoffice --headless --convert-to txt:Text "$@"
+else
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+fi

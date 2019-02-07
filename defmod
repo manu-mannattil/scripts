@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# NAME
+#
+#   defmod - reset all file/directory permissions recursively
+#
+# SYNOPSIS
+#
+#   defmod <file>...
+#
+# DESCRIPTION
+#
+#   defmod recursively resets the file/directory permissions of all
+#   files/directories supplied as arguments to the default permissions
+#   (as specified by the umask(1)) for the normal user.
+#
+#   Note that multiple runs of defmod might be required if some files
+#   are not accesible during the first run(s).
+#
+
+[ "$*" ] || {
+    echo >&2 "${0##*/}: at least one file/directory must be specified"
+    exit 1
+}
+
+# Calculate default file/directory permissions for normal user.
+fperm=$(printf "%04o\n" "$(( 0666 - $(umask) ))")
+dperm=$(printf "%04o\n" "$(( 0777 - $(umask) ))")
+
+for arg
+do
+    if [ -f "$arg" ] || [ -h "$arg" ]
+    then
+        chmod -v "$fperm" "$arg"
+    elif [ -d "$arg" ]
+    then
+        find "$arg" -type d -exec chmod -v "$dperm" {} +
+        find "$arg" -type f -exec chmod -v "$fperm" {} +
+    fi
+done

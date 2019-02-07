@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   ffind - friendly find wrapper
+#
+# SYNOPSIS
+#
+#   ffind <pattern> [<path>...] [<expression>...]
+#
+# DESCRIPTION
+#
+#   ffind is a friendly wrapper around find(1), which takes care of 90%
+#   of my find(1)-use cases.  I wrote ffind primarily because I grew
+#   tired of piping the output of find(1) to grep(1).
+#
+# OPTIONS
+#
+#   The first argument in the argument list must be a valid egrep(1)
+#   pattern to match full file paths and the rest of the arguments can
+#   be paths or find(1) expressions.  
+#
+#   In addition to standard find(1) expressions the option "-ns" may
+#   also be passed to disable "smartness".  In that case, the pattern
+#   will be always matched case sensitively and all directories will be
+#   scanned.
+#
+#   In case you do not want ffind to filter any results when more than
+#   one argument is supplied, use an empty string '' as the pattern (or
+#   even better, use find(1) instead).
+#
+# EXAMPLES
+#
+#   o   Search for PDF/PS files inside the subdirectory `physics' with
+#       the word `mechanics' in their names
+#
+#         ffind 'physics\/.*mechanics.*\.(ps|pdf)$'
+#
+#   o   Recursively delete all temporary files (.~, .bak, .log, etc.)
+#       from the current directory
+#
+#         ffind '\.(~|bak|log)$' -delete
+#
+#       or
+#
+#         ffind '\.(~|bak|log)$' -print0 | xargs -0 rm
+#
+#   o   Find all empty directories that start with an uppercase letter
+#
+#         ffind '/[A-Z][^/]*$' -type d -empty
+#
+# DEPENDENCIES
+#
+#   GNU version of find(1).
+#
+# BUGS
+#   
+#   Yes.
+#
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} <pattern> [<path>...] [<expression>...]"
+    exit 1
+}
+
+patt="$1"; shift
+path=()
+
+for arg
+do
+    # The first argument starting with a `-' is assumed to
+    # begin the expression chain.
+    if [[ "$arg" =~ ^-.* ]]
+    then
+        break
+    elif [[ -d "$arg" ]]
+    then
+        path+=("$arg")
+    else
+        echo >&2 "${0##*/}: invalid path '$arg'; skipping"
+    fi
+    shift
+done
+
+# Disable smartness if -ns is passed as an argument.
+smart="yes"
+for arg
+do
+    [[ "$arg" == "-ns" ]] && { smart="no"; shift; break; }
+done
+
+# Default find args.  If find encounters a global option like -maxdepth
+# after a test like -regex, then it will issue a warning; that's the
+# reason why we're passing -nowarn.
+args+=(
+    -nowarn
+    -regextype egrep
+)
+
+if [[ "$smart" == "yes" ]]
+then
+    args+=(
+        # Ignore standard VCS directories.
+        -type d \(
+            # Bazaar
+            # http://bazaar.canonical.com/
+            -name .bzr           -o
+
+            # Codeville
+            # http://freecode.com/projects/codeville
+            -name .cdv           -o
+
+            # Interface Builder (Xcode)
+            # http://en.wikipedia.org/wiki/Interface_Builder
+            -name ~.dep          -o
+            -name ~.dot          -o
+            -name ~.nib          -o
+            -name ~.plst         -o
+
+            # Git
+            # http://git-scm.com/
+            -name .git           -o
+
+            # Mercurial
+            # http://mercurial.selenic.com/
+            -name .hg            -o
+
+            # quilt
+            # http://directory.fsf.org/wiki/Quilt
+            -name .pc            -o
+
+            # Subversion
+            # http://subversion.tigris.org/
+            -name .svn           -o
+
+            # Monotone
+            # http://www.monotone.ca/
+            -name _MTN           -o
+
+            # CVS
+            # http://savannah.nongnu.org/projects/cvs
+            -name CVS            -o
+
+            # RCS
+            # http://www.gnu.org/software/rcs/
+            -name RCS            -o
+
+            # SCCS
+            # http://en.wikipedia.org/wiki/Source_Code_Control_System
+            -name SCCS           -o
+
+            # darcs
+            # http://darcs.net/
+            -name _darcs         -o
+
+            # Vault/Fortress
+            -name _sgbak         -o
+
+            # autoconf
+            # http://www.gnu.org/software/autoconf/
+            -name autom4te.cache -o
+
+            # Perl module building
+            -name blib           -o
+            -name _build         -o
+
+            # Perl Devel::Cover module's output directory
+            # https://metacpan.org/release/Devel-Cover
+            -name cover_db       -o
+
+            # Node modules created by npm
+            -name node_modules   -o
+
+            # CMake cache
+            # http://www.cmake.org/
+            -name CMakeFiles     -o
+
+            # Eclipse workspace folder
+            # http://eclipse.org/
+            -name .metadata      -o
+
+            # Cabal (Haskell) sandboxes
+            # http://www.haskell.org/cabal/users-guide/installing-packages.html
+            -name .cabal-sandbox 
+        \) -prune -false
+    )
+
+    # Smart regex: if the pattern contains at least one upper-case
+    # letter, assume that the user wants a case-sensitive search.
+    [[ "$patt" =~ [A-Z] ]] && args+=(-o -regex) || args+=(-o -iregex)
+else
+    args+=(-regex)
+fi
+
+args+=(".*(${patt}.*|${patt}$)")
+exec find "${path[@]}" "${args[@]}" "$@"

@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# NAME
+#
+#   rot13 - rot13 cipher
+#
+# SYNOPSIS
+#
+#   rot13 [<file>...]
+#
+# DESCRIPTION
+#
+#   This script exists mainly because tr(1) doesn't
+#   accept files as arguments.
+#
+# EXAMPLE
+#
+#   $ rot13 /usr/share/dict/words | rot13
+#
+
+if [ "$*" ]
+then
+    # Not a useless use of cat!
+    cat "$@" | tr "A-Za-z" "N-ZA-Mn-za-m"
+else
+    tr "A-Za-z" "N-ZA-Mn-za-m"
+fi

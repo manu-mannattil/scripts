@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# NAME
+#
+#   spectrogram - make spectrograms using FFmpeg and SoX
+#
+# SYNOPSIS
+#
+#   spectrogram <file>...
+#
+# DESCRIPTION
+#
+#   spectrogram is a simple script to create a spectrogram of an audio
+#   file using SoX. This can be useful to determine if the file has the
+#   right bit-rate as advertised.   If SoX fails to create the
+#   spectrogram in the first attempt, the audio file is converted to
+#   a PCM WAV file using FFmpeg.
+#
+# DEPENDENCIES
+#
+#   ffmpeg(1), mktemp(1), sox(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+}
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+for file
+do
+    if ! sox "$file" -n spectrogram -o "${file%.*}.png" >/dev/null 2>&1
+    then
+        echo >&2 "${0##*/}: '${file}' has an unknown format; using ffmpeg"
+
+        # I can't seem to get this done using pipes.  So this
+        # will have to do for now.
+        wav="${tmpdir}/${file##*/}.wav"
+
+        if ffmpeg -y -i "$file" "$wav" >/dev/null 2>&1
+        then
+            sox "$wav" -n spectrogram -o "${file%.*}.png"
+        else
+            echo >&2 "${0##*/}: ffmpeg failed to convert file '${file}'"
+        fi
+    fi
+done

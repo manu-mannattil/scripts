@@ -1,0 +1,48 @@
+#!/bin/sed -f
+#
+# NAME
+#
+#   srtpol - sed script to "polish" SubRip subtitles.
+#
+# SYNOPSIS
+#
+#   srtpol [-i] [<file>...]
+#
+# DESCRIPTION
+#
+#   srtpol is a sed script to "polish" SubRip (SRT) subtitles by
+#   smartening quotes, dashes, ellipsis, etc.  It also removes all HTML
+#   tags except italics.
+#
+# OPTIONS
+#
+#   -i      Edit files in place
+#
+
+# Smarten quotes.
+s/\(^\|[-–—[:space:]\/{(\[\x22]\)\x27/\1‘/g
+s/'/’/g
+s/\(^\|[-–—[:space:]\/{(\[‘]\)\x22/\1“/g
+s/"/”/g
+
+# Smarten ellipsis.
+s/\.\.\./…/g
+
+# Smarten dashes, but don't convert --> to —>.
+s/---/—/g
+s/--\([^>]|$\)/—\1/g
+
+# Sane *nix style EOL.
+s/\r$//
+s/\r/\n/g
+
+# Remove all HTML tags except italics.
+s|<i>|-#-OpenItalics-#-|g
+s|</i>|-#-CloseItalics-#-|g
+s|<[^>]*>||g
+s|-#-OpenItalics-#-|<i>|g
+s|-#-CloseItalics-#-|</i>|g
+
+# Strip unnecessary whitespace.
+s/^[[:space:]]\+//
+s/[[:space:]]\+$//

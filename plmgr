@@ -1,0 +1,137 @@
+#!/bin/sh
+#
+# NAME
+#
+#   plmgr - a media player agnostic playlist manager
+#
+# DESCRIPTION
+#
+#   plmgr is a media player agnostic playlist manager.  It's only
+#   purpose is to add/delete the currently playing track from a playlist
+#   file.
+#
+# SYNOPSIS
+#
+#   plmgr [-r] [<playlist>...]
+#   plmgr [-r] -a
+#
+#   -r  remove song from all the playlists
+#   -a  autoselect playlist based on artist name
+#
+# DEPENDENCIES
+#
+#   DeaDBeeF, iconv with //TRANSLIT
+#
+
+set -u
+
+: ${PLMGR_PLAYLIST_DIR:="${HOME}/music/playlists"}
+: ${PLMGR_PLAYLIST_DEFAULT:="miscellaneous.m3u"}
+
+die() {
+    printf >&2 "plmgr: %s\n" "$*"
+    exit 1
+}
+
+remove="no"
+autoartist="no"
+
+while getopts ":ahr" opt
+do
+    case "$opt" in
+        a)  autoartist="yes"                       ;;
+        h)  sed -n '/^# NAME$/, /^$/ { s/^# \{0,1\}//; p }' <"$0"
+            exit ;;
+        r)  remove="yes"                           ;;
+        :)  die "-${OPTARG} requires an argument"  ;;
+        \?) die "-${OPTARG} is not a valid option" ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+audio=$(deadbeef --nowplaying %F 2>/dev/null)
+test "$audio" = "nothing" && die "no song playing"
+
+if test "$autoartist" = "yes"
+then
+    # Canonicalize artist name and form a safe lowercase filename.
+    artist=$(deadbeef --nowplaying %a 2>/dev/null         |
+             iconv -c -f 'UTF-8' -t 'ASCII//TRANSLIT'     |
+             sed -e 's/ [fF][eE][aA][tT][ .:-]\{1,\}.*$//
+                     s/([^)]*)//g
+                     s/{[^}]*}//g
+                     s/\[[^]]*\]//g
+                     s/[\/].*$//
+
+                     s/^[^[:alnum:]]\{1,\}//
+                     s/[^[:alnum:]]\{1,\}$//
+                     s/[^[:alnum:]._-]\{1,\}/_/g
+                     y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/')
+
+    if test "$artist"
+    then
+        set -- "${artist}.m3u"
+    else
+        die "unable to parse artist info"
+    fi
+elif test $# -eq 0
+then
+    set -- "$PLMGR_PLAYLIST_DEFAULT"
+fi
+
+for m3u
+do
+    m3u="${PLMGR_PLAYLIST_DIR}/${m3u}"
+    if test "$remove" = "yes"
+    then
+        # We could've used sed to do an "in place" replace.  But that would
+        # involve ugly escaping of $m3u to avoid regex interpretation.
+        if grep -q -F "$audio" "$m3u" 2>/dev/null
+        then
+            {   # This should be OK since grep -F will (almost?) never fail.
+                rm -f "$m3u"
+                grep -v -F "$audio" >"$m3u"
+            } <"$m3u"
+            printf >&2 "song removed from '%s'\n" "$m3u"
+        else
+            printf >&2 "song not in '%s'\n" "$m3u"
+        fi
+    else
+        if grep -q -F "$audio" "$m3u" 2>/dev/null
+        then
+            printf >&2 "song already in '%s'\n" "$m3u"
+        else
+            printf "%s\n" "$audio" >>"$m3u"
+            printf >&2 "song added to '%s'\n" "$m3u"
+        fi
+    fi
+done
+
+#
+# Elementary Bash completion function for plmgr(1).
+#
+# _plmgr() {
+#     local cur="${COMP_WORDS[COMP_CWORD]}"
+#     local prev="${COMP_WORDS[COMP_CWORD - 1]}"
+#     local opts="-a -r"
+#
+#     COMPREPLY=()
+#
+#     if [[ "$cur" = -* ]]
+#     then
+#         COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+#     else
+#         # Make sure that `-a' isn't present in the arguments.
+#         for arg in "${COMP_WORDS[@]}"
+#         do
+#             [[ "$arg" = "-a" ]] && return 0
+#         done
+#
+#         COMPREPLY=( $(CDPATH= cd "$PLMGR_PLAYLIST_DIR"
+#                       compgen -A file -X "!*.m3u" -- "$cur") )
+#     fi
+#
+#     return 0
+# }
+# complete -F _plmgr plmgr
+#

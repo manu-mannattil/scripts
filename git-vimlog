@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# NAME
+#
+#   git-vimlog - view commit logs using Vim
+#
+# SYNOPSIS
+#
+#   git vimlog [<option>...]
+#
+# DESCRIPTION
+#
+#   git-vimlog lets you view the commit logs of a repository inside Vim.
+#   While piping the commit logs to Vim, git-vimlog sets the filetype to
+#   `git' and the `keywordprg' to `git show'.  Thus, moving the cursor
+#   to a commit hash and pressing K would result in the commit/diff
+#   being expanded.
+#
+# OPTIONS
+#
+#   The options are the same as `git log'.
+#
+# DEPENDENCIES
+#
+#   git(1) and vim(1)
+#
+
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1
+then
+    git log "$@" | vim -R -c 'set ft=git keywordprg=git\ show nowrap' -
+else
+    echo >&2 "${0##*/}: not inside a git working tree"
+    exit 1
+fi

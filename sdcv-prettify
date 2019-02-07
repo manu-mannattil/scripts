@@ -1,0 +1,113 @@
+#!/usr/bin/awk -f
+# -*- coding: utf-8 -*-
+#
+# NAME
+#
+#   sdcv-prettify - AWK script to format and prettify sdcv's output
+#
+# SYNOPSIS
+#
+#   sdcv-prettify [--color] [<file>...]
+#
+# DESCRIPTION
+#
+#   sdcv-prettify is an AWK script to filter sdcv's output.  It has the
+#   following functions:
+#
+#     o   Colorizes dictionary titles and pronunciation if `--color' is
+#         supplied as the first argument.
+#     o   Increases indentation so that the layout doesn't look
+#         congested.
+#     o   Wraps paragraphs to 72 characters without breaking up words.
+#     o   Wraps numbered lists with proper padding.
+#
+#   The best way to use this script is by setting the SDCV_PAGER
+#   environment variable:
+#
+#     export SDCV_PAGER="sdcv-prettify"
+#
+#   or even better,
+#
+#     export SDCV_PAGER="sdcv-prettify --color | less -icR"
+#
+
+BEGIN {
+  COLUMNS = 72
+
+  if (ARGV[1] == "--color") {
+    CYAN = sprintf("\033[38;5;6m")
+    YELLOW = sprintf("\033[38;5;3m")
+    RESET = sprintf("\033[0m")
+
+    # Cleanup arguments.
+    for (i = 1; i < ARGC; i++)
+      ARGV[i] = ARGV[i + 1]
+
+    delete ARGV[ARGC]
+    ARGC--
+  }
+
+  margin = 0
+  wrap_margin = 0
+}
+
+function padding(n) {
+  return sprintf("%" n "s", "")
+}
+
+function wrap(line, wrap_margin) {
+  n = split(line, words)
+
+  wrapped = ""
+  width = 0
+
+  for (i = 1; i <= n; i++) {
+    if (width + length(words[i]) <= COLUMNS) {
+      wrapped = wrapped " " words[i]
+      width = width + length(words[i]) + 1
+    } else {
+      wrapped = wrapped "\n" padding(wrap_margin) words[i]
+      width = wrap_margin + length(words[i])
+    }
+  }
+
+  return substr(wrapped, 2)
+}
+
+{
+  # There's some bug in sdcv which causes sdcv to not convert
+  # XML entities properly.  So we do it here.
+  gsub("&amp;", "\\&")
+  gsub("&apos;", "'")
+  gsub("&gt;", ">")
+  gsub("&lt;", "<")
+  gsub("&quot;", "\"")
+  gsub("<[^>]*>", "")
+
+  if (match($0, /^ */)) {
+    # Break line if indentation changes.
+    if (margin != RLENGTH)
+      printf("\n")
+
+    margin = RLENGTH
+
+    # Wrap numbered and bulleted items like vim: fo+=n.
+    if (match($0, /^ *([0-9]+[.)]|■) */)) {
+      printf("\n")
+      wrap_margin = RLENGTH + margin
+    }
+    else {
+      wrap_margin = 2 * margin
+    }
+
+    # Double the indentation.
+    printf padding(2 * margin)
+  }
+
+  if ($0 ~ /^-->/)
+    print CYAN $0 RESET
+  else if ($0 ~ /^\[.+\]$/)
+    print YELLOW $0 RESET
+  else
+    print wrap($0, wrap_margin)
+}

@@ -1,0 +1,47 @@
+#!/bin/sh
+#
+# NAME
+#
+#   web - open files using web browser
+#
+# SYNOPSIS
+#
+#   web [<options>] [<url>...]
+#
+# OPTIONS
+#
+#   All options supported by $BROWSER
+#
+# DESCRIPTION
+#
+#   web can be used to pipe the output of a command to $BROWSER.
+#   The temporary HTML files created by web in $TMPDIR are not
+#   removed automatically; use a cron job to remove them.
+#
+# EXAMPLES
+#
+#   o Open a file
+#
+#     $ web index.html
+#
+#   o Pipe the output of a command to the web browser
+#   
+#     $ echo '<h1>Hello, world!</h1>' | web
+#     $ markdown README.md | web
+#
+# DEPENDENCIES
+#
+#   mktemp(1)
+#
+
+: "${BROWSER:=/usr/bin/firefox}"
+
+# If the stdin isn't attached to the terminal, store its contents in
+# a file and pass the file as an argument to $BROWSER.
+[ ! -t 0 ] && {
+    file="$(mktemp -t web.XXXXXX.html)"
+    cat >"$file"
+    set -- "$@" "$file"
+}
+
+exec nohup "$BROWSER" "$@" </dev/null >/dev/null 2>&1 &

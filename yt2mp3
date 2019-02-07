@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# NAME
+#
+#   yt2mp3 - extract audio track from YouTube and convert to MP3
+#
+# SYNOPSIS
+#
+#   yt2mp3 <url>...
+#
+# DESCRIPTION
+#
+#   yt2mp3 downloads the highest quality audio track from YouTube (and
+#   other websites supported by youtube-dl) and converts it into an MP3
+#   file.
+#
+# DEPENDENCIES
+#
+#   youtube-dl(1) and ffmpeg(1)
+#
+
+exec youtube-dl                  \
+    --audio-format mp3           \
+    --audio-quality 0            \
+    --extract-audio              \
+    --format bestaudio           \
+    --ignore-config              \
+    --prefer-ffmpeg              \
+    --restrict-filenames         \
+    --user-agent 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36' "$@"

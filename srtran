@@ -1,0 +1,82 @@
+#!/usr/bin/awk -f
+#
+# NAME
+#
+#   srtran - linearly transform timestamps in SubRip (SRT) subtitles
+#
+# SYNOPSIS
+#
+#   srtran [-v a=<a>] [-v b=<b>] [<file>...]
+#
+# OPTIONS
+#
+#   -v a=<a>    Set the value of a to <a> (default: a = 1).
+#   -v b=<b>    Set the value of b to <b> (default: b = 0).
+#
+# DESCRIPTION
+#
+#   Each timestamp in the subtitle file is linearly transformed using the
+#   function f(t) = a*t + b.  This is useful for many things, e.g.,
+#   fixing the framerate of subtitles, syncing subtitles, etc.
+#
+# EXAMPLE
+#
+#   To convert a subtitle file with original framerate 23.976 fps to
+#   25.000 fps, note that a = 23.976/25.000 = 0.95904.  Thus,
+#
+#     srtran -v a=0.95904 -v b=0 input.srt >output.srt
+#
+
+BEGIN {
+  RS = "\r?\n[0-9]+\r?\n"   # Frame separator
+  FS = "\r?\n"              # Line separator
+  FN = 1                    # Subtitle frame number
+
+  if (a == "")
+    a = 1.0
+
+  if (b == "")
+    b = 0.0
+}
+
+function seconds(subtime) {
+  split(subtime, array, /[:,]/)
+  return array[1]*3600 + array[2]*60 + array[3] + array[4]*0.001
+}
+
+function subtime(seconds) {
+  hours = int(seconds/3600)
+  min   = int((seconds - hours*3600)/60)
+  secs  = int((seconds - hours*3600 - min*60))
+  msecs = int((seconds - hours*3600 - min*60 - secs)*1000)
+
+  return sprintf("%02d:%02d:%02d,%03d", hours, min, secs, msecs)
+}
+
+{
+  if (NR == 1) {
+    interval = $2
+    subline = 3
+  } else {
+    interval = $1
+    subline = 2
+  }
+
+  split(interval, period, "-->")
+  start = a*seconds(period[1]) + b
+  end   = a*seconds(period[2]) + b
+
+  if (start >= 0) {
+    print FN
+    print subtime(start), "-->", subtime(end)
+
+    for (i = subline; i <= NF; i++)
+      print $i
+
+    FN++
+  }
+}
+
+END {
+  printf("srtran: %d frames lost\n", (NR - FN + 1)) >"/dev/stderr"
+}

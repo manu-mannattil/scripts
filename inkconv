@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   inkconv - convert between vector graphics formats using Inkscape
+#
+# SYNOPSIS
+#
+#   inkconv <input> <output>
+#
+# DEPENDENCIES
+#
+#   inkscape(1)
+#
+
+[[ $# -lt 2 ]] && {
+    echo >&2 "usage: ${0##*/} <input> <output>"
+    exit 1
+}
+
+args=("--without-gui" "--export-area-drawing" "--file=${1}")
+
+# Choose converter according to extension.
+case "${2##*.}" in
+    emf) args+=("--export-emf=${2}") ;;
+    eps) args+=("--export-eps=${2}") ;;
+    pdf) args+=("--export-pdf=${2}") ;;
+    png) args+=("--export-png=${2}") ;;
+    ps)  args+=("--export-ps=${2}") ;;
+    svg) args+=("--export-plain-svg=${2}") ;;
+    wmf) args+=("--export-wmf=${2}") ;;
+    *)   echo >&2 "${0##*/}: unknown output extension '.${2##*.}'"
+         exit 1 ;;
+esac
+
+inkscape "${args[@]}" && echo >&2 "${1} -> ${2}"

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   doi2bib - fetch BiBTeX entry for the given DOI
+#
+# SYNOPSIS
+#
+#   doi2bib <string>...
+#
+# DESCRIPTION
+#
+#   doi2bib 'greps' the supplied string for DOIs and retrieves the
+#   corresponding BiBTeX records from dx.doi.org.
+#
+# DEPENDENCIES
+#
+#   curl(1)
+#
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} <string>..."
+    exit 1
+}
+
+for string
+do
+    if [[ "$string" =~ .*(10.[0-9]{4,9}/[-._;()/:a-zA-Z0-9]+) ]]
+    then
+        response=$(curl -qsL -H 'Accept: application/x-bibtex' \
+                   "http://dx.doi.org/${BASH_REMATCH[1]}")
+
+        if [[ "$response" =~ ^@ ]]
+        then
+            echo "$response" | expand -t 2
+        else
+            echo >&2 "${0##*/}: could not resolve '${string}'"
+            continue
+        fi
+    else
+        echo >&2 "${0##*/}: malformed DOI in '${string}'"
+        continue
+    fi
+done

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   texclean - remove temporary files created by LaTeX
+#
+# SYNOPSIS
+#
+#   texclean [<dir>...]
+#
+# DESCRIPTION
+#
+#   texclean is a simple script that recursively scans the supplied
+#   directories for .tex files and deletes the associated temporary
+#   files (if any).  Note that the temporary files are expected to be
+#   under the same directory as the .tex source files, with the same
+#   stem name.  If no arguments are supplied, the current directory is
+#   scanned.
+#
+# EXAMPLES
+#
+#   $ texclean ~/documents ~/notes
+#   $ texclean . -maxdepth 1
+#
+# SEE ALSO
+#
+#   cleanlinks(1)
+#
+
+[[ "$*" ]] || set -- "."
+
+IFS=$'\n' read -d '' -r -a files < <(find "$@" -type f -name '*.tex' |
+awk '{
+    sub(".tex$", "")
+
+    print $0 ".aux"
+    print $0 ".bbl"
+    print $0 ".bcf"
+    print $0 ".blg"
+    print $0 ".fdb_latexmk"
+    print $0 ".fls"
+    print $0 ".gz"
+    print $0 ".log"
+    print $0 ".nav"
+    print $0 ".out"
+    print $0 ".run.xml"
+    print $0 ".snm"
+    print $0 ".spl"
+    print $0 ".synctex.gz"
+    print $0 ".synctex.gz(busy)"
+    print $0 ".toc"
+    print $0 ".xdv"
+    print $0 ".xml"
+    print $0 "Notes.bib"
+
+    # Remove temporary files produced by latexrun.
+    # https://github.com/aclements/latexrun
+    sub("[^/]*$", "")
+    print $0 "latex.out/"
+    print $0 ".latexrun.db"
+    print $0 ".latexrun.db.lock"
+}')
+
+rm -v -rf "${files[@]}"

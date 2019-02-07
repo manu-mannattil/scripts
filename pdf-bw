@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pdf-bw - convert PDFs to grayscale
+#
+# SYNOPSIS
+#
+#   pdf-bw <file>...
+#
+# DESCRIPTION
+#
+#   pdf-bw will convert each input PDF file to grayscale and write the
+#   output to `<file>_bw.pdf'.
+#
+
+[ "$*" ] || {
+    echo >&2 "pdf-bw ${0##*/} <file>..."
+    exit 1
+}
+
+for pdf
+do
+    gs -dBATCH                         \
+       -dCompatibilityLevel=1.4        \
+       -dDetectDuplicateImages         \
+       -dEmbedAllFonts=true            \
+       -dNOPAUSE                       \
+       -dNOPLATFONTS                   \
+       -dProcessColorModel=/DeviceGray \
+       -dQUIET                         \
+       -dSAFER                         \
+       -dSubsetFonts=true              \
+       -sColorConversionStrategy=Gray  \
+       -sDEVICE=pdfwrite               \
+       -sOutputFile="${pdf%.*}_bw.pdf" \
+       "$pdf"
+done

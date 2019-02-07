@@ -1,0 +1,96 @@
+#!/bin/sh
+#
+# NAME
+#
+#   2mp3 - convert audio files into LAME encoded MP3s using FFmpeg.
+#
+# SYNOPSIS
+#
+#   2mp3 [-fhv] [-q <quality>] <input>...
+#
+# OPTIONS
+#
+#   -f            Force overwrite files.
+#   -q <quality>  LAME preset (must be between 0 and 9); default = 0.
+#
+#   Preset       Average Kbit/s              Kbit/s range
+#   ------       --------------              ------------
+#      0               245                     220..260
+#      1               225                     190..250
+#      2               190                     170..210
+#      3               175                     150..195
+#      4               165                     140..185
+#      5               130                     120..150
+#      6               115                     100..130
+#      7               100                      80..120
+#      8               85                       70..105
+#      9               65                       45...85
+#
+#   For more see: http://wiki.hydrogenaud.io/index.php?title=LAME
+#
+# EXAMPLES
+#
+#   * Convert all APEs in the current directory to MP3
+#
+#     $ parallel 2mp3 ::: *.ape
+#
+#   * Recursively convert all FLAC files in the current directory to MP3
+#     with the LAME preset V2 in parallel:
+#
+#     $ find -type f -name '*.flac' | parallel 2mp3 -q 2
+#
+# DEPENDENCIES
+#   
+#   ffmpeg(1)
+#
+
+info() {
+    echo >&2 "${0##*/}: $*"
+}
+
+force="no"
+quality=0
+
+while getopts ":fhq:" opt
+do
+    case "$opt" in
+        h)  echo >&2 "usage: 2mp3 [-fh] [-q <quality>] <file>..."
+            exit 0 ;;
+        f)  force="yes" ;;
+        q)  quality="$OPTARG" ;;
+        :)  info "${OPTARG} requires an argument"
+            exit 1 ;;
+        \?) info "${OPTARG} is not a valid options"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+if [ "$*" ]
+then
+    for file
+    do
+        if [ ! -f "$file" ]
+        then
+            info "'${file}' is not a valid audio file; skipping."
+        elif [ "${file##*.}" = "mp3" ]
+        then
+            info "'${file}' is already an MP3 encoded file; skipping"
+        elif [ -f "${file%.*}.mp3" ] && [ "$force" = "no" ]
+        then
+            info "'${file%.*}.mp3' exists; skipping"
+        else
+            ffmpeg -v error          \
+                   -y                \
+                   -vn               \
+                   -i "$file"        \
+                   -c:a libmp3lame   \
+                   -q:a "$quality"   \
+                   "${file%.*}.mp3" &&
+            info "'${file}' -> '${file%.*}.mp3'"
+        fi
+    done
+else
+    echo >&2 "usage: 2mp3 [-fh] [-q <quality>] <file>..."
+    exit 0
+fi

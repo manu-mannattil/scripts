@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pdf-rm-annot - remove annotations from a PDF file
+#
+# SYNOPSIS
+#
+#   pdf-rm-annot <file>...
+#
+# DESCRIPTION
+#
+#   pdf-rm-annot is a simple script that uses PDFtk and sed to remove
+#   annotations from a PDF file.  A backup of the supplied files will be
+#   kept, e.g., `document.pdf' will be backed up to `document.pdf~'.
+#
+# DEPENDENCIES
+#
+#   pdftk(1)
+#
+
+if [ "$*" ]
+then
+    for pdf
+    do
+        cp -f -- "$pdf" "${pdf}~"
+        pdftk "${pdf}~" output - uncompress     |
+            LANG=C LC_CTYPE=C sed '|^/Annots|d' |
+            pdftk - output "$pdf" compress
+        echo >&2 "${0##*/}: cleaned '$pdf'"
+    done
+else
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+fi

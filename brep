@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   brep - better grep
+#
+# SYNOPSIS
+#
+#   brep <pattern> [<path>...] [<option>...]
+#
+# DESCRIPTION
+#
+#   Every once in a while someone writes an alternative to grep(1)
+#   (e.g., ack, ag, pt, rg, etc.) and I have to struggle to relearn
+#   things, change 'grepprg' in Vim, etc.  brep is a once-and-for-all
+#   alternative to all these programs.  brep is a GNU grep(1) wrapper in
+#   about 70 lines of Bash.  Of course, brep is only as fast as grep(1)
+#   is.  Thus, if efficiency is a very critical requirement, then you
+#   should not use brep.
+#
+# USAGE/OPTIONS
+#
+#   The first argument in the argument list must be a valid Perl regular
+#   expression and the rest of the args can be directories/files or
+#   grep(1) options.  The order of pattern -> path -> option in the
+#   argument list must be maintained for brep to work.  All valid
+#   grep(1) options (except the matcher selection options, -EFGP) can be
+#   given to brep.  Additionally, we define the following
+#   aliases/options:
+#
+#       -if <glob>, --include=<glob>
+#           include files matching glob
+#
+#       -ef <glob>, --exclude=<glob>
+#           exclude files matching glob
+#
+#       -ed <glob>, --exclude-dir=<glob>
+#           exclude directories matching glob
+#
+#       -ns, --no-smart
+#           disable smartness (i.e., do not any ignore files
+#           by default, no smart regex, etc.)
+#
+# DEPENDENCIES
+#
+#   GNU's variant of grep(1)
+#
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} <pattern> [<file>...] [<options>...]"
+    exit 1
+}
+
+patt="$1"; shift
+while [[ "$1" ]]
+do
+    # The first argument starting with a `-' is assumed to
+    # begin the option chain.
+    [[ "$1" =~ ^-.* ]] && break
+
+    # If the argument is a regular file/directory, assume that the user
+    # wants to grep the file/directory.  Otherwise assume that it's
+    # a glob to restrict matches.
+    [[ -e "$1" ]] && files+=("$1") || args+=(--include="$1")
+
+    shift
+done
+
+smart="yes"
+while [[ "$1" ]]
+do
+    # Now that we're done with files, process aliases.
+    case "$1" in
+        -ed) args+=("--exclude-dir=${2}"); shift 2 ;;
+        -ef) args+=("--exclude=${2}"); shift 2     ;;
+        -if) args+=("--include=${2}"); shift 2     ;;
+        -ns|--no-smart)
+             smart="no"; shift                     ;;
+        *)   args+=("$1"); shift                   ;;
+    esac
+done
+
+# Default grep options.
+args+=(
+    --binary-files=without-match
+    --color=auto
+    --dereference-recursive
+    --devices=skip
+    --line-number
+    --perl-regexp
+)
+
+[[ "$smart" == "yes" ]] && {
+    # Smart regex: if the pattern contains at least one upper-case
+    # letter, assume that the user wants a case-sensitive search.
+    [[ "$patt" =~ [A-Z] ]] || args+=(--ignore-case)
+
+    # Ignore some common VCS directories, backup files, etc.
+    # Curated from the ack source: https://beyondgrep.com/
+    args+=(
+        ### Directories to ignore ###
+
+        # Bazaar
+        # http://bazaar.canonical.com/
+        --exclude-dir=.bzr
+
+        # Codeville
+        # http://freecode.com/projects/codeville
+        --exclude-dir=.cdv
+
+        # Interface Builder (Xcode)
+        # http://en.wikipedia.org/wiki/Interface_Builder
+        --exclude-dir=~.dep
+        --exclude-dir=~.dot
+        --exclude-dir=~.nib
+        --exclude-dir=~.plst
+
+        # Git
+        # http://git-scm.com/
+        --exclude-dir=.git
+
+        # Mercurial
+        # http://mercurial.selenic.com/
+        --exclude-dir=.hg
+
+        # quilt
+        # http://directory.fsf.org/wiki/Quilt
+        --exclude-dir=.pc
+
+        # Subversion
+        # http://subversion.tigris.org/
+        --exclude-dir=.svn
+
+        # Monotone
+        # http://www.monotone.ca/
+        --exclude-dir=_MTN
+
+        # CVS
+        # http://savannah.nongnu.org/projects/cvs
+        --exclude-dir=CVS
+
+        # RCS
+        # http://www.gnu.org/software/rcs/
+        --exclude-dir=RCS
+
+        # SCCS
+        # http://en.wikipedia.org/wiki/Source_Code_Control_System
+        --exclude-dir=SCCS
+
+        # darcs
+        # http://darcs.net/
+        --exclude-dir=_darcs
+
+        # Vault/Fortress
+        --exclude-dir=_sgbak
+
+        # autoconf
+        # http://www.gnu.org/software/autoconf/
+        --exclude-dir=autom4te.cache
+
+        # Perl module building
+        --exclude-dir=blib
+        --exclude-dir=_build
+
+        # Perl Devel::Cover module's output directory
+        # https://metacpan.org/release/Devel-Cover
+        --exclude-dir=cover_db
+
+        # Node modules created by npm
+        --exclude-dir=node_modules
+
+        # CMake cache
+        # http://www.cmake.org/
+        --exclude-dir=CMakeFiles
+
+        # Eclipse workspace folder
+        # http://eclipse.org/
+        --exclude-dir=.metadata
+
+        # Cabal (Haskell) sandboxes
+        # http://www.haskell.org/cabal/users-guide/installing-packages.html
+        --exclude-dir=.cabal-sandbox
+
+        ### Files to ignore ###
+
+        # Backup files
+        --exclude=*.bak
+        --exclude=*~
+
+        # Emacs swap files
+        --exclude=\#*\#
+
+        # vi/vim swap files http://vim.org/
+        --exclude=[._]*.swp
+	--exclude=viminfo
+
+        # Minified CSS/Javascript
+        --exclude=*[-.]min.css
+        --exclude=*[-.]min.js
+    )
+}
+
+exec grep "${args[@]}" -- "$patt" "${files[@]}"

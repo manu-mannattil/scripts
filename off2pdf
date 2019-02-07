@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   off2pdf -- headlessly convert LibreOffice/MS Office files to PDF
+#
+# SYNOPSIS
+#
+#   off2pdf <file>...
+#
+# DEPENDENCIES
+#
+#   libreoffice(1)
+#
+
+if [ "$*" ]
+then
+    libreoffice --headless --convert-to pdf "$@"
+else
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+fi

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   m3ucull - cull nonexistant files from an M3U playlist
+#
+# SYNOPSIS
+#
+#   m3ucull [<file>]
+#
+# DESCRIPTION
+#
+#   m3ucull culls nonexistant files from an M3U playlist by commenting
+#   those lines out.
+#
+
+cleanup() {
+    while IFS= read -r file
+    do
+        # Preserve comments but remove files that don't exist.
+        [[ "$file" =~ ^\s*# || -f "$file" ]] && echo "$file" || echo "# ${file}"
+    done
+}
+
+[[ "$*" ]] && cleanup < <(cat -- "$@") || cleanup
