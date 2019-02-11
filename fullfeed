@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# fullfeed is a script to convert partial RSS/Atom feeds to full feeds.
+# The basic usage is
+#
+#   fullfeed [<file>]
+#
+# For more options run
+#
+#   fullfeed -h
+#
+# Sometimes RSS/Atom feeds do not contain the full text of the articles
+# they link to.  Feed publishers do this so that the user actually
+# visits the site to read the full article (to generate more ad revenue
+# presumably).  However, going on the Internet can lead to distraction,
+# and given today's trend of news websites using large embedded fonts
+# and a layout optimized for mobile browsers, it becomes annoying as
+# well.
+#
+# fullfeed attempts to solve this problem by fetching the page each item
+# in the feed links to and extracting the main body text using the
+# Python Readability library.
+#
+# Requires: Python 3 with readability-lxml and requests
+#
+
+import argparse
+import os
+import re
+import requests
+import sys
+from hashlib import md5
+from multiprocessing.pool import ThreadPool
+from readability import Document
+from urllib.parse import urlparse
+from xml.etree.ElementTree import ElementTree
+
+# Number of threads.
+NUM_THREADS = 10
+
+# Minimum number of characters required in the text to
+# determine if the text extraction was successful.
+TEXT_THRESHOLD = 140
+
+# Cache directory to store downloaded articles.
+CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/fullfeed")
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
+
+
+def digest(string):
+    """Return the MD5 digest of a string."""
+    return md5(string.encode("utf-8")).hexdigest()
+
+
+def fulltext(url, force=False, strip_links=False):
+    """Extract full text from the URL."""
+    # Attempt to see if we've already downloaded the article before.
+    cache_file = os.path.join(CACHE_DIR, digest(url) + ".html")
+    if os.path.exists(cache_file) and not force:
+        with open(cache_file, "r") as fd:
+            text = fd.read()
+    else:
+        html = requests.get(url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible)",
+            "Referer": urlparse(url).netloc
+        }).text
+        text = Document(html).summary(html_partial=True)
+
+        if len(text) < TEXT_THRESHOLD:
+            return None
+        else:
+            with open(cache_file, "w") as fd:
+                fd.write(text)
+
+    if strip_links:
+        text = re.sub(r"</?a(?:(?= )[^>]*)?>", "", text)
+
+    return text
+
+
+def fullfeed(args):
+    """Extract full text by reading the feed from the file descriptor."""
+    tree = ElementTree()
+    tree.parse(args.file)
+
+    # First, extract all URLs from entries.
+    urls = []
+    for channel in tree.findall("channel"):
+        for item in channel.findall(".//item"):
+            link = item.find("link").text
+            urls.append(link)
+
+            # Restrict number of processed links if required.
+            if len(urls) >= args.num_items > 0:
+                break
+
+    # Now, visit each URL and extract full text.
+    entries = {}
+    update = lambda url: entries.update({
+        digest(url): fulltext(url, force=args.force, strip_links=args.strip_links)
+    })
+    pool = ThreadPool(NUM_THREADS)
+    pool.map(update, urls)
+
+    # Update feed with full text.
+    for channel in tree.findall("channel"):
+        for item in channel.findall(".//item"):
+            link = item.find("link").text
+            description = item.find("description")
+            text = entries.get(digest(link), description)
+            if text:
+                description.text = text
+
+    tree.write(sys.stdout, encoding="unicode")
+
+
+if __name__ == "__main__":
+    arg_parser = argparse.ArgumentParser(
+        prog="fullfeed",
+        description="convert RSS/Atom partial feeds to full feeds"
+    )
+    arg_parser.add_argument(
+        "-f", "--force", action="store_true",
+        help="force overwrite cache"
+    )
+    arg_parser.add_argument(
+        "-n", "--num-items", default=0, type=int,
+        help="process first n items only"
+    )
+    arg_parser.add_argument(
+        "-s", "--strip-links", action="store_true", default=False,
+        help="strip <a> tags from HTML"
+    )
+    arg_parser.add_argument(
+        "file", help="file with the feed", nargs="?",
+        type=argparse.FileType("r"), default=sys.stdin
+    )
+
+    args = arg_parser.parse_args()
+    sys.exit(fullfeed(args))
