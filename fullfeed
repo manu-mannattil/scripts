@@ -4,9 +4,13 @@
 # fullfeed is a script to convert partial RSS/Atom feeds to full feeds.
 # The basic usage is
 #
-#   fullfeed [<file>]
+#   fullfeed <file>
 #
-# For more options run
+# fullfeed can also read stdin data, e.g.,
+#
+#   curl -sL https://www.economist.com/asia/rss.xml | fullfeed
+#
+# For more options run,
 #
 #   fullfeed -h
 #
@@ -21,6 +25,12 @@
 # fullfeed attempts to solve this problem by fetching the page each item
 # in the feed links to and extracting the main body text using the
 # Python Readability library.
+#
+# To use fullfeed, you need a feed reader (e.g., Liferea, feed2imap,
+# etc.) that supports using a filtering command, or has the ability to
+# read feeds from a file.  To use fullfeed with Liferea, while adding
+# the feed, choose advanced options and set fullfeed as the conversion
+# filter.
 #
 # Requires: Python 3 with readability-lxml and requests
 #
