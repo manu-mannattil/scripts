@@ -17,10 +17,7 @@
 # Sometimes RSS/Atom feeds do not contain the full text of the articles
 # they link to.  Feed publishers do this so that the user actually
 # visits the site to read the full article (to generate more ad revenue
-# presumably).  However, going on the Internet can lead to distraction,
-# and given today's trend of news websites using large embedded fonts
-# and a layout optimized for mobile browsers, it becomes annoying as
-# well.
+# presumably).
 #
 # fullfeed attempts to solve this problem by fetching the page each item
 # in the feed links to and extracting the main body text using the
@@ -58,6 +55,9 @@ CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/fullfeed")
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
+# User agent.
+USER_AGENT = "Mozilla/5.0 (compatible)"
+
 
 def digest(string):
     """Return the MD5 digest of a string."""
@@ -72,8 +72,8 @@ def fulltext(url, force=False, strip_links=False):
         with open(cache_file, "r") as fd:
             text = fd.read()
     else:
-        html = requests.get(url, headers={
-            "User-Agent": "Mozilla/5.0 (compatible)",
+        html = requests.get(url, timeout=10, headers={
+            "User-Agent": USER_AGENT,
             "Referer": urlparse(url).netloc
         }).text
         text = Document(html).summary(html_partial=True)
