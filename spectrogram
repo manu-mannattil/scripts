@@ -38,7 +38,7 @@ do
 
         # I can't seem to get this done using pipes.  So this
         # will have to do for now.
-        wav="${tmpdir}/${file##*/}.wav"
+        wav=$(mktemp -p "$tmpdir" "audio.XXXXXX.wav")
 
         if ffmpeg -y -i "$file" "$wav" >/dev/null 2>&1
         then
