@@ -2,19 +2,24 @@
 #
 # NAME
 #
-#   extract - extract archives
+#   dtrx - extract archives
 #
 # SYNOPSIS
 #
-#   extract <file>...
+#   dtrx <file>...
 #
 # DESCRIPTION
 #
-#   Extract archives of different formats.
+#   Extract archives of different formats.  Named after the similar,
+#   more featureful, Python script called "Do The Right Extraction".
 #
 # DEPENDENCIES
 #
 #   GNU tar(1), bunzip2(1), gunzip(1), unzip(1), 7z(1), uncompress(1)
+#
+# SEE ALSO
+#   
+#   dtrx (https://brettcsmith.org/2007/dtrx/)
 #
 
 for arg
