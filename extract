@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# NAME
+#
+#   extract - extract archives
+#
+# SYNOPSIS
+#
+#   extract <file>...
+#
+# DESCRIPTION
+#
+#   Extract archives of different formats.
+#
+# DEPENDENCIES
+#
+#   GNU tar(1), bunzip2(1), gunzip(1), unzip(1), 7z(1), uncompress(1)
+#
+
+for arg
+do
+   if [ -f "$arg" ]
+   then
+       case "$arg" in
+           *.tar.bz2)   tar xvjf "$arg"   ;;
+           *.tar.gz)    tar xvzf "$arg"   ;;
+           *.bz2)       bunzip2 "$arg"    ;;
+           *.rar)       unrar x "$arg"    ;;
+           *.gz)        gunzip "$arg"     ;;
+           *.tar)       tar xvf "$arg"    ;;
+           *.tbz2)      tar xvjf "$arg"   ;;
+           *.tgz)       tar xvzf "$arg"   ;;
+           *.zip)       unzip "$arg"      ;;
+           *.Z)         uncompress "$arg" ;;
+           *.7z)        7z x "$arg"       ;;
+           *.exe)       cabextract "$arg" ;;
+           *)  echo >&2 "${0##*/}: no rule to extract '$arg'" ;;
+       esac
+   else
+       echo >&2 "${0##*/}: '$arg' is not a valid file!"
+   fi
+done
