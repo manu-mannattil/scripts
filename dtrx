@@ -22,6 +22,11 @@
 #   dtrx (https://brettcsmith.org/2007/dtrx/)
 #
 
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+}
+
 for arg
 do
    if [ -f "$arg" ]
