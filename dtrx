@@ -18,7 +18,7 @@
 #   GNU tar(1), bunzip2(1), gunzip(1), unzip(1), 7z(1), uncompress(1)
 #
 # SEE ALSO
-#   
+#
 #   dtrx (https://brettcsmith.org/2007/dtrx/)
 #
 
@@ -50,3 +50,13 @@ do
        echo >&2 "${0##*/}: '$arg' is not a valid file!"
    fi
 done
+
+#
+# Elementary Bash completion function for dtrx(1).
+#
+# _dtrx() {
+#     COMPREPLY=( $(compgen -A file -X '!(*.tar.bz2|*.tar.gz|*.bz2|*.rar|*.gz|*.tar|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.exe)' -- "${COMP_WORDS[COMP_CWORD]}") )
+# }
+#
+# complete -F _dtrx dtrx
+#
