@@ -84,9 +84,10 @@ def get_lyrics(keyword):
     except AttributeError:
         raise PrintError("Error retrieving lyrics for the given keyword.\n" + url)
 
-    match = re.match(r"^([^:]*):(.*) Lyrics$", metadata)
+    match = re.match(r"^([^:]*):(.*)", metadata)
     if match:
         artist, title = match.groups()
+        title = re.sub(r" Lyrics$", "", title)
     else:
         raise PrintError("Error extracting metadata from HTML.\n" + req.url)
 
