@@ -4,7 +4,7 @@
 # com is a "Not Invented Here" Python port of [1] with some minor
 # changes in function.  The basic usage is
 #
-#   com [<options>] file...
+#   com [<options>] file [<args>]
 #
 # For more details about com's options, run
 #
@@ -24,6 +24,7 @@
 #   {/}         basename of the full path
 #   {//}        dirname of the full path
 #   {/.}        basename of the full path without extension
+#   {@}         additional arguments supplied
 #
 # The main purpose of com is to make it easier to compile simple
 # programs without writing a makefile.  For instance, a rudimentary
@@ -87,12 +88,13 @@ def process(line, attributes):
     line = line.replace("\\{", "\0ob\0")
     line = line.replace("\\}", "\0cb\0")
 
-    line = line.replace("{}", attributes["name"])
-    line = line.replace("{.}", attributes["stem"])
-    line = line.replace("{..}", attributes["extension"])
-    line = line.replace("{/}", attributes["basename"])
-    line = line.replace("{//}", attributes["dirname"])
-    line = line.replace("{/.}", attributes["stembase"])
+    line = line.replace("{}", attributes.get("name", ""))
+    line = line.replace("{.}", attributes.get("stem", ""))
+    line = line.replace("{..}", attributes.get("extension", ""))
+    line = line.replace("{/}", attributes.get("basename", ""))
+    line = line.replace("{//}", attributes.get("dirname", ""))
+    line = line.replace("{/.}", attributes.get("stembase", ""))
+    line = line.replace("{@}", attributes.get("args", ""))
 
     # Replace escaped {}'s if any and cleanup.
     line = line.replace("\0ob\0", "{")
@@ -101,7 +103,7 @@ def process(line, attributes):
     return line.strip()
 
 
-def com(fd, dry_run=False, shell=None, debug=False):
+def com(fd, args=None, dry_run=False, shell=None, debug=False):
     """Compile a file."""
     # Convert to absolute path and make an attributes dictionary.
     name = path.abspath(fd.name)
@@ -113,6 +115,11 @@ def com(fd, dry_run=False, shell=None, debug=False):
         "dirname": quote(path.dirname(name)),                        # {//}
         "stembase": quote(path.basename(path.splitext(name)[0]))     # {/.}
     }
+
+    # If there are additional arguments, quote them safely
+    # and make a string.
+    if args:
+        attributes.update({"args": " ".join(map(quote, args))})
 
     regex = EXTENSION_RE.get(attributes["extension"], DEFAULT_RE)
     attributes.update({"regex": regex})
@@ -154,12 +161,14 @@ def main():
         help="trace each step by passing '-x' to the shell"
     )
     arg_parser.add_argument(
-        "file", help="files", nargs="+", type=argparse.FileType("r")
+        "file", help="files", type=argparse.FileType("r")
+    )
+    arg_parser.add_argument(
+        "args", help="additional arguments", nargs="*"
     )
 
     args = arg_parser.parse_args()
-    for fd in args.file:
-        com(fd, args.dry_run, args.shell, args.x_trace)
+    com(args.file, args.args, args.dry_run, args.shell, args.x_trace)
 
 
 if __name__ == "__main__":
