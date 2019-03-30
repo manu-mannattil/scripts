@@ -6,6 +6,10 @@
 #
 # SYNOPSIS
 #
+#   pdf-cropper <file>
+#
+# DESCRIPTION
+#
 #   pdf-cropper extracts a range of pages from the supplied PDF using
 #   pdfjam and gives it to krop -- a simple graphical tool to crop PDF
 #   pages.  Although krop has the functionality to krop a range of
@@ -19,6 +23,11 @@
 #
 #   krop <http://arminstraub.com/software/krop>
 #
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} <file>"
+    exit 1
+}
 
 pdf="$(mktemp -t XXXXXX.pdf)"
 trap 'rm -rf "$pdf" >/dev/null 2>&1' EXIT
