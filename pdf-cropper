@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   pdf-cropper - run krop on a page range
+#
+# SYNOPSIS
+#
+#   pdf-cropper extracts a range of pages from the supplied PDF using
+#   pdfjam and gives it to krop -- a simple graphical tool to crop PDF
+#   pages.  Although krop has the functionality to krop a range of
+#   pages, it is slower on large PDFs, ergo this script.
+#
+# DEPENDENCIES
+#
+#   krop(1), zenity(1), and pdfjam(1)
+#
+# SEE ALSO
+#
+#   krop <http://arminstraub.com/software/krop>
+#
+
+pdf="$(mktemp -t XXXXXX.pdf)"
+trap 'rm -rf "$pdf" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+pages=$(zenity --entry --title="PDF Cropper" --text="Enter page range")
+
+[[ "$pages" =~ [0-9,-]+ ]] || {
+    echo >&2 "${0##*/}: error extracting pages"
+    exit 1
+}
+
+# We could've used pdftk, but pdfjam is faster for extracting pages.
+echo >&2 "${0##*/}: extracting page(s)"
+pdfjam "$1" "$pages" -o "$pdf"
+
+echo >&2 "${0##*/}: running krop"
+exec krop "$pdf" -o "${1%.*}-cropped.pdf"
