@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# NAME
+#
+#   cuesplit - split CUEd audio files
+#
+# SYNOPSIS
+#
+#   cuesplit <file>...
+#
+# DEPENDENCIES
+#
+#   cuebreakpoints(1), shnsplit(1)
+#
+
+set -eu
+
+for f
+do
+    [ -f "${f%.*}.cue" ] || {
+        echo >&2 "${0##*/}: can't file CUE file for ${f}"
+        continue
+    }
+    cuebreakpoints "${f%.*}.cue" | shnsplit -a "${f%.*}-" -o flac "$f"
+done
