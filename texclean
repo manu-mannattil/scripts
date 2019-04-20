@@ -59,6 +59,9 @@ awk '{
     print $0 "latex.out/"
     print $0 ".latexrun.db"
     print $0 ".latexrun.db.lock"
+
+    # Remove tags file (created by ctags).
+    print $0 "tags"
 }')
 
 rm -v -rf "${files[@]}"

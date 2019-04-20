@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# detox is a Python 3 script to clean up filenames by removing spaces
+# and special characters.  It restricts the filenames to [a-z0-9.-_].
+# detox's functionality is very similar to the detox program by Doug
+# Harple, although the implementation is much more rudimentary and
+# simpler.  The basic usage is
+#
+#   detox <file>...
+#
+# For more details about detox's options, run
+#
+#   detox --help
+#
+
+import argparse
+import os
+import re
+import sys
+import unicodedata
+
+
+def clean(name):
+    """Cleanup a filename."""
+    name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
+    name = name.decode("ascii")
+
+    name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
+    name = re.sub(r"[_\W]+\.([^.]*)$", r".\1", name)
+    name = re.sub(r"[\"']+", "", name)
+    name = re.sub(r"[^\w.-]+", "_", name)
+    name = name.lower()
+
+    return name
+
+
+def rename(root, name, dry=False):
+    """Rename a file with the given root directory and name."""
+    src = os.path.join(root, name)
+    dst = os.path.join(root, clean(name))
+
+    if src == dst:
+        pass
+    elif os.path.exists(dst):
+        print("{} exists".format(dst), file=sys.stderr)
+    else:
+        print("{} -> {}".format(src, dst), file=sys.stderr)
+        if not dry:
+            try:
+                os.replace(src, dst)
+            except Exception as e:
+                print(e, file=sys.stderr)
+
+
+def detox(files, recurse=False, dry=False):
+    """Detox a list of files."""
+    for name in files:
+        if os.path.isdir(name) and recurse:
+            for root, dirs, files in os.walk(name, topdown=False):
+                for f in files + dirs:
+                    rename(root, f, dry)
+        else:
+            rename("", name, dry)
+
+
+def arg_parser_valid(name):
+    """Check if the file is valid and can be accessed."""
+    if not os.path.isfile(name) and not os.path.isdir(name):
+        raise argparse.ArgumentTypeError("{} is not a validp path".format(name))
+    else:
+        return os.path.normpath(name)
+
+
+if __name__ == '__main__':
+    arg_parser = argparse.ArgumentParser(prog="detox",
+        description="clean up filenames")
+    arg_parser.add_argument("-r", "--recurse", action="store_true",
+        default=False, help="recurse into directories")
+    arg_parser.add_argument("-n", "--dry-run", action="store_true",
+        default=False, help="dry run")
+    arg_parser.add_argument("files", type=arg_parser_valid, nargs="+",
+        help="input files")
+
+    args = arg_parser.parse_args()
+    sys.exit(detox(args.files, recurse=args.recurse, dry=args.dry_run))
