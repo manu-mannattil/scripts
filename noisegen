@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# NAME
+#
+#   noisegen - generate noise using SoX
+#
+# SYNOPSIS
+#
+#   noisegen
+#
+# DESCRIPTION
+#
+#   noisegen is a shell script to generate noise using SoX.  There is
+#   some evidence that listening to noise improves concentration and
+#   productivity [1].  By default noisegen generates 60 seconds of
+#   2-channel noise and plays it on repeat.
+#
+# [1]: https://www.wsj.com/articles/SB10001424053111904199404576538274265089288
+#
+
+# Creates an oscillatory sound of given frequency.
+tremolo="0.05"
+
+# Type of noise: 'white', 'pink', 'brown', 'tpdf'
+noise="brown"
+
+# Total length (in seconds) of noise to generate.
+length="60"
+
+exec play                           \
+    --channels 2                    \
+    --null                          \
+    --type alsa                     \
+    synth "$length" "${noise}noise" \
+    tremolo "$tremolo"              \
+    reverb 20                       \
+    bass -10                        \
+    treble -1                       \
+    vol 12dB                        \
+    repeat  -

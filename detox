@@ -55,7 +55,7 @@ def rename(root, name, dry=False):
     else:
         print("{} -> {}".format(src, dst), file=sys.stderr)
         if not dry:
-                os.replace(src, dst)
+            os.replace(src, dst)
 
 
 def detox(files, recurse=False, dry=False):
@@ -83,7 +83,7 @@ def arg_parser_valid(name):
         return os.path.normpath(name)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(prog="detox",
         description="clean up filenames")
     arg_parser.add_argument("-r", "--recurse", action="store_true",
