@@ -3,15 +3,25 @@
 #
 # detox is a Python 3 script to clean up filenames by removing spaces
 # and special characters.  It restricts the filenames to [a-z0-9.-_].
-# detox's functionality is very similar to the detox program by Doug
-# Harple, although the implementation is much more rudimentary and
-# simpler.  The basic usage is
+# detox's functionality is somewhat equivalent to the similarly-named
+# program by Doug Harple [1], although the implementation is much more
+# rudimentary and simpler.  The basic usage is
 #
 #   detox <file>...
+#
+# Some examples:
+#
+#   $ detox "A Midsummer Night's Dream.pdf"
+#   "A Midsummer Night's Dream.pdf" -> a_midsummer_nights_dream.pdf
+#
+#   $ detox "A. Camus - L’Étranger.epub"
+#   A. Camus - L’Étranger.epub -> a._camus_-_letranger.epub
 #
 # For more details about detox's options, run
 #
 #   detox --help
+#
+# [1]: http://detox.sourceforge.net
 #
 
 import argparse
@@ -21,24 +31,22 @@ import sys
 import unicodedata
 
 
-def clean(name):
-    """Cleanup a filename."""
+def rename(root, name, dry=False):
+    """Cleanup the filename of a file with the given root and name."""
+    src = os.path.join(root, name)
+
     name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
     name = name.decode("ascii")
-
     name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
-    name = re.sub(r"[_\W]+\.([^.]*)$", r".\1", name)
     name = re.sub(r"[\"']+", "", name)
     name = re.sub(r"[^\w.-]+", "_", name)
     name = name.lower()
 
-    return name
+    # Remove nonalnum before extension if src is a file.
+    if os.path.isfile(src):
+        name = re.sub(r"[_\W]+\.([^.]*)$", r".\1", name)
 
-
-def rename(root, name, dry=False):
-    """Rename a file with the given root directory and name."""
-    src = os.path.join(root, name)
-    dst = os.path.join(root, clean(name))
+    dst = os.path.join(root, name)
 
     if src == dst:
         pass
@@ -47,27 +55,30 @@ def rename(root, name, dry=False):
     else:
         print("{} -> {}".format(src, dst), file=sys.stderr)
         if not dry:
-            try:
                 os.replace(src, dst)
-            except Exception as e:
-                print(e, file=sys.stderr)
 
 
 def detox(files, recurse=False, dry=False):
     """Detox a list of files."""
     for name in files:
-        if os.path.isdir(name) and recurse:
-            for root, dirs, files in os.walk(name, topdown=False):
-                for f in files + dirs:
-                    rename(root, f, dry)
-        else:
-            rename("", name, dry)
+        try:
+            if os.path.isdir(name) and recurse:
+                for root, dirs, files in os.walk(name, topdown=False):
+                    for f in files + dirs:
+                        rename(root, f, dry)
+            else:
+                rename("", name, dry)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            return 1
 
 
 def arg_parser_valid(name):
     """Check if the file is valid and can be accessed."""
     if not os.path.isfile(name) and not os.path.isdir(name):
-        raise argparse.ArgumentTypeError("{} is not a validp path".format(name))
+        raise argparse.ArgumentTypeError("{} is not a valid path".format(name))
+    elif not os.access(name, os.W_OK):
+        raise argparse.ArgumentTypeError("{} is not writable".format(name))
     else:
         return os.path.normpath(name)
 
