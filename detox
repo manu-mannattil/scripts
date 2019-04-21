@@ -31,7 +31,7 @@ import sys
 import unicodedata
 
 
-def rename(root, name, dry=False):
+def rename(root, name, lower_case=False, dry=False):
     """Cleanup the filename of a file with the given root and name."""
     src = os.path.join(root, name)
 
@@ -40,7 +40,9 @@ def rename(root, name, dry=False):
     name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
     name = re.sub(r"[\"']+", "", name)
     name = re.sub(r"[^\w.-]+", "_", name)
-    name = name.lower()
+
+    if lower_case:
+        name = name.lower()
 
     # Remove nonalnum before extension if src is a file.
     if os.path.isfile(src):
@@ -58,16 +60,16 @@ def rename(root, name, dry=False):
             os.replace(src, dst)
 
 
-def detox(files, recurse=False, dry=False):
+def detox(files, recurse=False, lower_case=False, dry=False):
     """Detox a list of files."""
     for name in files:
         try:
             if os.path.isdir(name) and recurse:
                 for root, dirs, files in os.walk(name, topdown=False):
                     for f in files + dirs:
-                        rename(root, f, dry)
+                        rename(root, f, lower_case, dry)
             else:
-                rename("", name, dry)
+                rename("", name, lower_case, dry)
         except Exception as e:
             print(e, file=sys.stderr)
             return 1
@@ -86,12 +88,14 @@ def arg_parser_valid(name):
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(prog="detox",
         description="clean up filenames")
+    arg_parser.add_argument("-l", "--lower-case", action="store_true",
+        default=False, help="convert filenames to lowercase")
     arg_parser.add_argument("-r", "--recurse", action="store_true",
         default=False, help="recurse into directories")
     arg_parser.add_argument("-n", "--dry-run", action="store_true",
-        default=False, help="dry run")
+        default=False, help="perform a trial run")
     arg_parser.add_argument("files", type=arg_parser_valid, nargs="+",
         help="input files")
 
     args = arg_parser.parse_args()
-    sys.exit(detox(args.files, recurse=args.recurse, dry=args.dry_run))
+    sys.exit(detox(args.files, args.recurse, args.lower_case, args.dry_run))
