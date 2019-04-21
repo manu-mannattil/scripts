@@ -52,6 +52,8 @@ def rename(root, name, lower_case=False, dry=False):
 
     if src == dst:
         pass
+    elif not name:
+        print("unable to detox {}".format(src), file=sys.stderr)
     elif os.path.exists(dst):
         print("{} exists".format(dst), file=sys.stderr)
     else:
