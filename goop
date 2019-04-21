@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# detox is a Python 3 script to clean up filenames by removing spaces
+# goop [1] is a Python 3 script to detox filenames by removing spaces
 # and special characters.  It restricts the filenames to [a-z0-9.-_].
-# detox's functionality is somewhat equivalent to the similarly-named
-# program by Doug Harple [1], although the implementation is much more
-# rudimentary and simpler.  The basic usage is
+# The basic usage is
 #
-#   detox <file>...
+#   goop <file>...
 #
 # Some examples:
 #
-#   $ detox "A Midsummer Night's Dream.pdf"
+#   $ goop "A Midsummer Night's Dream.pdf" 
 #   "A Midsummer Night's Dream.pdf" -> a_midsummer_nights_dream.pdf
 #
-#   $ detox "A. Camus - L’Étranger.epub"
+#   $ goop "A. Camus - L’Étranger.epub" 
 #   A. Camus - L’Étranger.epub -> a._camus_-_letranger.epub
 #
-# For more details about detox's options, run
+# For more details about goop's options, run
 #
-#   detox --help
+#   goop --help
 #
-# [1]: http://detox.sourceforge.net
+# Also see, detox <http://detox.sourceforge.net>
+#
+# [1]: After Ms. Paltrow's eponymous detoxing company.
 #
 
 import argparse
@@ -88,8 +88,8 @@ def arg_parser_valid(name):
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser(prog="detox",
-        description="clean up filenames")
+    arg_parser = argparse.ArgumentParser(prog="goop",
+        description="detox filenames")
     arg_parser.add_argument("-l", "--lower-case", action="store_true",
         default=False, help="convert filenames to lowercase")
     arg_parser.add_argument("-r", "--recurse", action="store_true",
