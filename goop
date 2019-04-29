@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # goop [1] is a Python 3 script to detox filenames by removing spaces
-# and special characters.  It restricts the filenames to [a-z0-9.-_].
+# and special characters.  It restricts the filenames to [a-z0-9._-].
 # The basic usage is
 #
 #   goop <file>...
@@ -10,7 +10,7 @@
 # Some examples:
 #
 #   $ goop "A Midsummer Night's Dream.pdf" 
-#   "A Midsummer Night's Dream.pdf" -> a_midsummer_nights_dream.pdf
+#   A Midsummer Night's Dream.pdf -> a_midsummer_nights_dream.pdf
 #
 #   $ goop "A. Camus - L’Étranger.epub" 
 #   A. Camus - L’Étranger.epub -> a._camus_-_letranger.epub
@@ -38,6 +38,7 @@ def rename(root, name, lower_case=False, dry=False):
     name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
     name = name.decode("ascii")
     name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
+    name = re.sub(r"[_\W]+$", "", name)
     name = re.sub(r"[\"']+", "", name)
     name = re.sub(r"[^\w.-]+", "_", name)
 
@@ -53,11 +54,11 @@ def rename(root, name, lower_case=False, dry=False):
     if src == dst:
         pass
     elif not name:
-        print("unable to detox {}".format(src), file=sys.stderr)
+        print("unable to detox ‘{}’".format(src), file=sys.stderr)
     elif os.path.exists(dst):
-        print("{} exists".format(dst), file=sys.stderr)
+        print("‘{}’ exists".format(dst), file=sys.stderr)
     else:
-        print("{} -> {}".format(src, dst), file=sys.stderr)
+        print("‘{}’ -> ‘{}’".format(src, dst), file=sys.stderr)
         if not dry:
             os.replace(src, dst)
 
@@ -80,16 +81,16 @@ def detox(files, recurse=False, lower_case=False, dry=False):
 def arg_parser_valid(name):
     """Check if the file is valid and can be accessed."""
     if not os.path.isfile(name) and not os.path.isdir(name):
-        raise argparse.ArgumentTypeError("{} is not a valid path".format(name))
+        raise argparse.ArgumentTypeError("‘{}’ is not a valid path".format(name))
     elif not os.access(name, os.W_OK):
-        raise argparse.ArgumentTypeError("{} is not writable".format(name))
+        raise argparse.ArgumentTypeError("‘{}’ is not writable".format(name))
     else:
         return os.path.normpath(name)
 
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(prog="goop",
-        description="detox filenames")
+        description="detox filenames by restricting characters to [a-z0-9._-]")
     arg_parser.add_argument("-l", "--lower-case", action="store_true",
         default=False, help="convert filenames to lowercase")
     arg_parser.add_argument("-r", "--recurse", action="store_true",
