@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# lyrics is a Python 3 script to retrieve lyrics from lyrics.wikia.com.
+# lyrics is a Python 3 script to retrieve lyrics from lyrics.fandom.com.
 # The basic usage is
 #
 #   lyrics [<args>] keyword...
@@ -36,7 +36,7 @@ from pydoc import pager
 from unicodedata import normalize
 
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
-SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.wikia.com"
+SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.fandom.com"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible)",
     "Referer": "www.google.com"
@@ -55,8 +55,8 @@ class PrintError(Exception):
 
 def sanitize(string):
     """Sanitize string."""
-    string = normalize("NFKD", string).encode("ascii", "ignore")
-    string = string.decode("ascii")
+    string = normalize("NFKD", string).encode("ASCII", "ignore")
+    string = string.decode("ASCII")
     string = string.lower()
     string = re.sub(r"[([{][^\]})]*[\]})]", "", string)
     string = re.sub(r"^\W+", "", string)
@@ -115,7 +115,7 @@ def main():
     """Argument parsing."""
     arg_parser = argparse.ArgumentParser(
         prog="lyrics",
-        description="retrieve lyrics from lyrics.wikia.com using keywords"
+        description="retrieve lyrics from lyrics.fandom.com using keywords"
     )
     arg_parser.add_argument(
         "-f", "--force", action="store_true", default=False,
