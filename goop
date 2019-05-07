@@ -9,10 +9,10 @@
 #
 # Some examples:
 #
-#   $ goop "A Midsummer Night's Dream.pdf" 
+#   $ goop "A Midsummer Night's Dream.pdf"
 #   A Midsummer Night's Dream.pdf -> a_midsummer_nights_dream.pdf
 #
-#   $ goop "A. Camus - L’Étranger.epub" 
+#   $ goop "A. Camus - L’Étranger.epub"
 #   A. Camus - L’Étranger.epub -> a._camus_-_letranger.epub
 #
 # For more details about goop's options, run
@@ -36,7 +36,7 @@ def rename(root, name, lower_case=False, dry=False):
     src = os.path.join(root, name)
 
     name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
-    name = name.decode("ascii")
+    name = name.decode("ASCII")
     name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
     name = re.sub(r"[_\W]+$", "", name)
     name = re.sub(r"[\"']+", "", name)
@@ -71,8 +71,9 @@ def detox(files, recurse=False, lower_case=False, dry=False):
                 for root, dirs, files in os.walk(name, topdown=False):
                     for f in files + dirs:
                         rename(root, f, lower_case, dry)
-            else:
-                rename("", name, lower_case, dry)
+
+            # Finally, rename the parent as well.
+            rename("", name, lower_case, dry)
         except Exception as e:
             print(e, file=sys.stderr)
             return 1
