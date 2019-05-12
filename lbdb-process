@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# NAME
+#
+#   lbdb-process - process email messages using The Little Brother's Database
+#
+# SYNOPSIS
+#
+#   lbdb-process <file>...
+#
+# DESCRIPTION
+#
+#   This is a simple helper script to process email messages using The
+#   Little Brother's Database (lbdb).  It will ignore messages that have
+#   been sent as replies to other messages.  After extracting all the
+#   addresses from a message, it will merge them with the existing
+#   addresses to create a unique, sorted database.
+#
+#   It is best to use this script using a cron job.  For instance, the
+#   following crontab entry causes lbdb-process to run each day on files
+#   in ~/mail created/modified within the last week.
+#
+#     @daily find ~/mail -type f -mtime -7 -exec .../path/to/lbdb-process {} +
+#
+# DEPENDENCIES
+#
+#   lbdb-fetchaddr(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "${0##*/} <file>..."
+    exit 1
+}
+
+db="$HOME/.lbdb/m_inmail.utf-8"
+[ -f "$db" ] && cp -f "$db" "$db.old"
+
+for mail
+do
+    [ -f "$mail" ] || continue
+
+    # Ignore messages that I've sent as a reply.
+    grep -q 'In-Reply-To' "$mail" && continue
+
+    sed '/^$/q' "$mail" | lbdb-fetchaddr -a
+    echo >&2 "${0##*/} processed $mail"
+done
+
+echo >&2 "${0##*/}: sorting"
+awk '
+    { count[$1]++; email[$1] = $0; }
+
+    END {
+        for (addr in email)
+            # Only add recipients I have contacted
+            # at least twice.
+            if (count[addr] > 1)
+                print email[addr]
+    }
+' "$db" >"$db.new"
+touch "$db.old"
+sort -u -k 1,1 "$db.new" "$db.old" >"$db"
