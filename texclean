@@ -60,6 +60,9 @@ awk '{
     print $0 ".latexrun.db"
     print $0 ".latexrun.db.lock"
 
+    # Remove temporary files created by the minted package.
+    print $0 "_minted-article"
+
     # Remove tags file (created by ctags).
     print $0 "tags"
 }')
