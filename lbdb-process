@@ -42,7 +42,7 @@ do
     # Ignore messages that I've sent as a reply.
     grep -q 'In-Reply-To' "$mail" && continue
 
-    sed '/^$/q' "$mail" | lbdb-fetchaddr -a
+    sed '/^$/q' "$mail" | lbdb-fetchaddr
     echo >&2 "${0##*/} processed $mail"
 done
 
