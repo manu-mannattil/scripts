@@ -166,7 +166,7 @@ tala_mount() {
   cryptsetup luksOpen "$container" "$mapper"
 
   echo >&2 "Mounting filesystem at '${dir}'"
-  mount --type "$filesystem" "/dev/mapper/${mapper}" "$dir"
+  mount --type "ext4" "/dev/mapper/${mapper}" "$dir"
 }
 
 tala_umount() {
