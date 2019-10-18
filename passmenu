@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   passmenu - choose password store entries using dmenu
+#
+# SYNOPSIS
+#
+#   passmenu
+#
+# DESCRIPTION
+#
+#   passmenu is a simple script that allows one to choose entries from
+#   a pass-managed password store using dmenu(1).
+#
+# SEE ALSO
+#
+#   pass(1), dmenu(1)
+#
+
+shopt -s nullglob globstar
+
+prefix=${PASSWORD_STORE_DIR-~/.password-store}
+files=( "$prefix"/**/*.gpg )
+files=( "${files[@]#"$prefix"/}" )
+files=( "${files[@]%.gpg}" )
+
+entry=$(printf '%s\n' "${files[@]}" | dmenu "$@")
+exec pass -c "$entry"
