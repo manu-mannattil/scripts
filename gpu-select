@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# NAME
+#
+#   gpu-select - a script to switch between Intel/NVIDIA graphics
+#
+# SYNOPSIS
+#
+#   gpu-select intel|nvidia|query
+#
+# DESCRIPTION
+#
+#   gpu-select is a wrapper script around Ubuntu's prime-select(1) and
+#   gpu-manager(1) that allows one to switch between Intel/NVIDIA
+#   graphics on PRIME systems.
+#
+#   It also adds a configuration file to /usr/share/X11/xorg.conf.d that
+#   enables the tear free option of the Intel driver when the integrated
+#   GPU is selected.  This is not possible with prime-select(1) alone,
+#   and that is why this script exists.
+#
+# SEE ALSO
+#
+#   prime-select(1), gpu-manager(1)
+#
+
+# Always run as root.
+test $(id -u) -eq 0 || exec sudo -- "$0" "$@"
+
+# Snippet of X configuration that fixes tearing problems with video
+# playback sometimes seen in systems with integrated Intel graphics.
+# This has to be written to /usr/share/X11/xorg.conf.d/10-intel.conf
+# whenever the Intel profile is chosen.
+intel_tearfree='Section "OutputClass"
+    Identifier  "Intel Graphics"
+    Driver      "intel"
+    Option      "AccelMethod" "sna"
+    Option      "TearFree" "true"
+EndSection'
+
+/usr/bin/prime-select "$1"
+
+case "$1" in
+    intel)  echo "$intel_tearfree" >/usr/share/X11/xorg.conf.d/10-intel.conf ;;
+    nvidia) rm -f /usr/share/X11/xorg.conf.d/10-intel.conf ;;
+    query)  exit 0 ;;
+    *)      exit 1 ;;
+esac
+
+# Stuff copied from prime-switch's source:
+# Call the GPU manager.
+/usr/bin/gpu-manager --log /var/log/gpu-manager-switch.log
+
+# Give udev the time to add back the drm device.
+/sbin/udevadm settle --timeout=2
