@@ -1,4 +1,4 @@
-#!/usr/local/bin/WolframScript -script
+#!/usr/bin/env wolframscript
 (*
  * NAME
  *
