@@ -14,6 +14,10 @@
 # if your audio player is capable of printing the details of the current
 # song on the standard output.
 #
+# * Example with keyword:
+#
+#   lyrics rebecca black friday
+#
 # * Example with MPD
 #
 #   lyrics $(mpc --format '%artist% %title%' | head -n 1)
@@ -37,6 +41,7 @@ from unicodedata import normalize
 
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
 SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.fandom.com"
+REDIRECT_RE = r"href=['\"](https?://lyrics.fandom.com/[^'\"]*)['\"]"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible)",
     "Referer": "www.google.com"
@@ -71,6 +76,11 @@ def get_lyrics(keyword):
     keyword = sanitize(keyword)
     url = "+".join([SEARCH_URL, keyword, "lyrics"])
     req = requests.get(url, headers=HEADERS)
+
+    # Google seems to be using JavaScript for redirection these days.
+    if re.search(r"Redirect Notice", req.text):
+        new_url = re.search(REDIRECT_RE, req.text).group(1)
+        req = requests.get(new_url, headers=HEADERS)
 
     # If lxml is available, prefer that.
     if "lxml" in sys.modules:
