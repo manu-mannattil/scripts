@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# NAME
+#
+#   open - open files using xdg-open and background properly
+#
+# SYNOPSIS
+#
+#   open <file>...
+#   open <URL>...
+#
+# SEE ALSO
+#
+#   openvt(1), xdg-open(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+}
+
+export XDG_CURRENT_DESKTOP="X-Generic"
+for arg
+do
+    nohup xdg-open "$arg" </dev/null >/dev/null 2>&1 &
+done
