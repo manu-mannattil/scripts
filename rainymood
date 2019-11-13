@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   rainymood - play rain sounds from rainymood.com
+#
+# SYNOPSIS
+#   
+#   rainymood [<mood>]
+#
+# DESCRIPTION
+#   
+#   rainymood is a script that will play rain sounds from rainymood.com.
+#   By default a random track (i.e., mood) will be selected.
+# 
+# DEPENDENCIES
+#   
+#   curl(1), mplayer(1)
+#
+
+[[ "$*" ]] || {
+    set -- $(( 1 + RANDOM % 8 ))
+}
+
+cache="$HOME/.cache/rainymood"
+mkdir -p "$cache"
+
+[[ -f "${cache}/${1}.m4a" ]] || {
+    echo >&2 "${0##*/}: caching mood #$1"
+    curl -q#kL -o "${cache}/${1}.m4a" "https://www.rainymood.com/audio1110/${1}.m4a"
+}
+
+echo >&2 "${0##*/}: playing mood #$1"
+exec mplayer -really-quiet "${cache}/${1}.m4a" &>/dev/null
