@@ -31,4 +31,4 @@ mkdir -p "$cache"
 }
 
 echo >&2 "${0##*/}: playing mood #$1"
-exec mplayer -really-quiet "${cache}/${1}.m4a" &>/dev/null
+exec mplayer -loop 0 -really-quiet "${cache}/${1}.m4a" &>/dev/null
