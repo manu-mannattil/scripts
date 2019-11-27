@@ -41,7 +41,7 @@ from hashlib import md5
 from multiprocessing.pool import ThreadPool
 from readability import Document
 from urllib.parse import urlparse
-from xml.etree.ElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree, SubElement
 
 # Number of threads.
 NUM_THREADS = 10
@@ -118,7 +118,12 @@ def fullfeed(args):
     for channel in tree.findall("channel"):
         for item in channel.findall(".//item"):
             link = item.find("link").text
+
+            # If the description element is missing, create it.
             description = item.find("description")
+            if not description:
+                description = SubElement(item, "description")
+
             text = entries.get(digest(link), description)
             if text:
                 description.text = text
