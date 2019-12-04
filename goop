@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 #
 # goop [1] is a Python 3 script to detox filenames by removing spaces
-# and special characters.  It restricts the filenames to [a-z0-9._-].
-# The basic usage is
+# and special characters.  By default, it restricts the filenames to
+# [a-zA-Z0-9._-].  The basic usage is
 #
 #   goop <file>...
 #
 # Some examples:
 #
 #   $ goop "A Midsummer Night's Dream.pdf"
-#   A Midsummer Night's Dream.pdf -> a_midsummer_nights_dream.pdf
+#   ‘A Midsummer Night's Dream.pdf’ -> ‘A_Midsummer_Nights_Dream.pdf’
 #
-#   $ goop "A. Camus - L’Étranger.epub"
-#   A. Camus - L’Étranger.epub -> a._camus_-_letranger.epub
+#   $ goop -l "A. Camus - L’Étranger.epub"
+#   ‘A. Camus - L’Étranger.epub’ -> ‘a._camus_letranger.epub’
 #
 # For more details about goop's options, run
 #
@@ -35,12 +35,30 @@ def rename(root, name, lower_case=False, dry=False):
     """Cleanup the filename of a file with the given root and name."""
     src = os.path.join(root, name)
 
+    # Convert to ASCII after possible Unicode conversions.
     name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
     name = name.decode("ASCII")
+
+    # Remove all nonalnum before the start of the filename if the
+    # filename doesn't start with a period.
     name = re.sub(r"^(?!\.)[_\W^.]+", "", name)
+
+    # Remove all nonalnum (including underscores) before
+    # the end of the filename.
     name = re.sub(r"[_\W]+$", "", name)
+
+    # Remove all quotes (" and ').
     name = re.sub(r"[\"']+", "", name)
+
+    # Replace all nonalnum other than [._-] with underscores.
     name = re.sub(r"[^\w.-]+", "_", name)
+
+    # Remove dashes and periods flanked by underscores.
+    name = re.sub(r"(_+[-.]+|[-.]+_+)", "_", name)
+
+    # Squeeze dashes and underscores.
+    name = re.sub(r"_+", "_", name)
+    name = re.sub(r"-+", "-", name)
 
     if lower_case:
         name = name.lower()
@@ -54,7 +72,7 @@ def rename(root, name, lower_case=False, dry=False):
     if src == dst:
         pass
     elif not name:
-        print("unable to detox ‘{}’".format(src), file=sys.stderr)
+        print("unable to detox ‘{}’; empty filename".format(src), file=sys.stderr)
     elif os.path.exists(dst):
         print("‘{}’ exists".format(dst), file=sys.stderr)
     else:
@@ -90,16 +108,34 @@ def arg_parser_valid(name):
 
 
 if __name__ == "__main__":
-    arg_parser = argparse.ArgumentParser(prog="goop",
-        description="detox filenames by restricting characters to [a-z0-9._-]")
-    arg_parser.add_argument("-l", "--lower-case", action="store_true",
-        default=False, help="convert filenames to lowercase")
-    arg_parser.add_argument("-r", "--recurse", action="store_true",
-        default=False, help="recurse into directories")
-    arg_parser.add_argument("-n", "--dry-run", action="store_true",
-        default=False, help="perform a trial run")
-    arg_parser.add_argument("files", type=arg_parser_valid, nargs="+",
-        help="input files")
+    arg_parser = argparse.ArgumentParser(
+        prog="goop",
+        description="detox filenames by restricting characters to [a-z0-9._-]",
+    )
+    arg_parser.add_argument(
+        "-l",
+        "--lower-case",
+        action="store_true",
+        default=False,
+        help="convert filenames to lowercase",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--recurse",
+        action="store_true",
+        default=False,
+        help="recurse into directories",
+    )
+    arg_parser.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="perform a trial run",
+    )
+    arg_parser.add_argument(
+        "files", type=arg_parser_valid, nargs="+", help="input files"
+    )
 
     args = arg_parser.parse_args()
     sys.exit(detox(args.files, args.recurse, args.lower_case, args.dry_run))
