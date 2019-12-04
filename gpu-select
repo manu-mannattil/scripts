@@ -29,8 +29,8 @@ test $(id -u) -eq 0 || exec sudo -- "$0" "$@"
 
 # Snippet of X configuration that fixes tearing problems with video
 # playback sometimes seen in systems with integrated Intel graphics.
-# This has to be written to /usr/share/X11/xorg.conf.d/10-intel.conf
-# whenever the Intel profile is chosen.
+# This has to be written to /etc/X11/xorg.conf.d/intel.conf whenever the
+# Intel profile is chosen.
 intel_tearfree='Section "OutputClass"
     Identifier  "Intel Graphics"
     Driver      "intel"
@@ -41,8 +41,8 @@ EndSection'
 /usr/bin/prime-select "$1"
 
 case "$1" in
-    intel)  echo "$intel_tearfree" >/usr/share/X11/xorg.conf.d/10-intel.conf ;;
-    nvidia) rm -f /usr/share/X11/xorg.conf.d/10-intel.conf ;;
+    intel)  echo "$intel_tearfree" >/etc/X11/xorg.conf.d/intel.conf ;;
+    nvidia) rm -f /etc/X11/xorg.conf.d/intel.conf ;;
     query)  exit 0 ;;
     *)      exit 1 ;;
 esac
