@@ -11,11 +11,14 @@
 # DESCRIPTION
 #
 #   Extract archives of different formats.  Named after the similar,
-#   more featureful, Python script called "Do The Right Extraction".
+#   more featureful, Python script called "Do The Right Extraction".  7z
+#   (from the Debian package p7zip-full) can also extract archives of
+#   different formats.  But 7z is not always available, ergo this
+#   script.
 #
 # DEPENDENCIES
 #
-#   GNU tar(1), bunzip2(1), gunzip(1), unzip(1), 7z(1), uncompress(1)
+#   GNU tar(1), unzip(1), 7z(1), ar(1), unrar(1)
 #
 # SEE ALSO
 #
@@ -29,37 +32,29 @@
 
 for arg
 do
-   if [ -f "$arg" ]
-   then
-       case "$arg" in
-           *.tar.bz2)   tar xvjf "$arg"   ;;
-           *.tar.gz)    tar xvzf "$arg"   ;;
-           *.bz2)       bunzip2 "$arg"    ;;
-           *.rar)       unrar x "$arg"    ;;
-           *.gz)        gunzip "$arg"     ;;
-           *.tar)       tar xvf "$arg"    ;;
-           *.tbz2)      tar xvjf "$arg"   ;;
-           *.tgz)       tar xvzf "$arg"   ;;
-           *.zip)       unzip "$arg"      ;;
-           *.Z)         uncompress "$arg" ;;
-           *.7z)        7z x "$arg"       ;;
-           *.exe)       cabextract "$arg" ;;
-           *)  echo >&2 "${0##*/}: no rule to extract '$arg'" ;;
-       esac
-   else
-       echo >&2 "${0##*/}: '$arg' is not a valid file!"
-   fi
+    if [ -f "$arg" ]
+    then
+        # 7z can extract almost all kinds of files, but use 7z as a last
+        # resort since it is not always installed.
+        case "$arg" in
+            *.ar|*.deb)
+                ar xv "$arg" ;;
+            *.rar)
+                unrar x "$arg" ;;
+            *.zip)
+                unzip "$arg" ;;
+            *)
+                # If it is not an extension we do not recognize, try
+                # extracting it using GNU tar, or if that fails, use 7z.
+                if tar atvf "$arg" >/dev/null 2>&1
+                then
+                    tar axvf "$arg"
+                else
+                    7z x "$arg"
+                fi
+                ;;
+        esac
+    else
+        echo >&2 "${0##*/}: '$arg' is not a valid file!"
+    fi
 done
-
-#
-# Elementary Bash completion function for dtrx(1).
-#
-# _dtrx() {
-#     local xspec="!(*.tar.bz2|*.tar.gz|*.bz2|*.rar|*.gz|*.tar|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.exe)"
-#     compopt -o filenames
-#     COMPREPLY=( $(compgen -f -X "$xspec" -- "${COMP_WORDS[COMP_CWORD]}") \
-#         $(compgen -d -- "${COMP_WORDS[COMP_CWORD]}") )
-# }
-#
-# complete -F _dtrx dtrx
-#
