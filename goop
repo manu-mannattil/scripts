@@ -13,7 +13,7 @@
 #   ‘A Midsummer Night's Dream.pdf’ -> ‘A_Midsummer_Nights_Dream.pdf’
 #
 #   $ goop -l "A. Camus - L’Étranger.epub"
-#   ‘A. Camus - L’Étranger.epub’ -> ‘a._camus_letranger.epub’
+#   ‘A. Camus - L’Étranger.epub’ -> ‘a_camus_letranger.epub’
 #
 # For more details about goop's options, run
 #
@@ -47,14 +47,14 @@ def rename(root, name, lower_case=False, dry=False):
     # the end of the filename.
     name = re.sub(r"[_\W]+$", "", name)
 
+    # Remove nonalnum before extension.
+    name = re.sub(r"[_\W]+(\.[^.]*$)", r"\1", name)
+
     # Remove all quotes (" and ').
     name = re.sub(r"[\"']+", "", name)
 
     # Replace all nonalnum other than [._-] with underscores.
     name = re.sub(r"[^\w.-]+", "_", name)
-
-    # Remove nonalnum before extension.
-    name = re.sub(r"[_\W]+(\.[^.]*$)", r"\1", name)
 
     # Remove dashes and periods flanked by underscores.
     name = re.sub(r"(_+[-.]+|[-.]+_+)", "_", name)
