@@ -47,8 +47,9 @@ def rename(root, name, lower_case=False, dry=False):
     # the end of the filename.
     name = re.sub(r"[_\W]+$", "", name)
 
-    # Remove nonalnum before extension.
-    name = re.sub(r"[_\W]+(\.[^.]*$)", r"\1", name)
+    # Remove nonalnum before extension if src is a file.
+    if os.path.isfile(src):
+        name = re.sub(r"[_\W]+\.([^.]*)$", r".\1", name)
 
     # Remove all quotes (" and ').
     name = re.sub(r"[\"']+", "", name)
@@ -65,10 +66,6 @@ def rename(root, name, lower_case=False, dry=False):
 
     if lower_case:
         name = name.lower()
-
-    # Remove nonalnum before extension if src is a file.
-    if os.path.isfile(src):
-        name = re.sub(r"[_\W]+\.([^.]*)$", r".\1", name)
 
     dst = os.path.join(root, name)
 
