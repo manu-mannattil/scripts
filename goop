@@ -53,6 +53,9 @@ def rename(root, name, lower_case=False, dry=False):
     # Replace all nonalnum other than [._-] with underscores.
     name = re.sub(r"[^\w.-]+", "_", name)
 
+    # Remove nonalnum before extension.
+    name = re.sub(r"[_\W]+(\.[^.]*$)", r"\1", name)
+
     # Remove dashes and periods flanked by underscores.
     name = re.sub(r"(_+[-.]+|[-.]+_+)", "_", name)
 
