@@ -74,7 +74,7 @@ EXTENSION_RE = {
     ".lhs": r"^\s*({?-+|--+)\s*com\s*:\s*",
     ".rs": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
     ".scm": r"^\s*;+\s*com\s*:\s*",
-    ".tex": r"^\s*%+\s*com\s*:\s*"
+    ".tex": r"^\s*%+\s*com\s*:\s*",
 }
 
 
@@ -106,12 +106,12 @@ def com(fd, args=None, dry_run=False, shell=None, debug=False):
     # Convert to absolute path and make an attributes dictionary.
     name = path.abspath(fd.name)
     attributes = {
-        "name": quote(name),                                         # {}
-        "stem": quote(path.splitext(name)[0]),                       # {.}
-        "extension": quote(path.splitext(name)[1]),                  # {..}
-        "basename": quote(path.basename(name)),                      # {/}
-        "dirname": quote(path.dirname(name)),                        # {//}
-        "stembase": quote(path.basename(path.splitext(name)[0]))     # {/.}
+        "name": quote(name),  # {}
+        "stem": quote(path.splitext(name)[0]),  # {.}
+        "extension": quote(path.splitext(name)[1]),  # {..}
+        "basename": quote(path.basename(name)),  # {/}
+        "dirname": quote(path.dirname(name)),  # {//}
+        "stembase": quote(path.basename(path.splitext(name)[0])),  # {/.}
     }
 
     # If there are additional arguments, quote them safely
@@ -142,28 +142,22 @@ def com(fd, args=None, dry_run=False, shell=None, debug=False):
 
 def main():
     """Argument parsing."""
-    arg_parser = argparse.ArgumentParser(
-        prog="com",
-        description="compile anything"
-    )
+    arg_parser = argparse.ArgumentParser(prog="com", description="compile anything")
     arg_parser.add_argument(
-        "-n", "--dry-run", action="store_true",
-        help="print the commands that will be executed"
+        "-n",
+        "--dry-run",
+        action="store_true",
+        help="print the commands that will be executed",
     )
+    arg_parser.add_argument("-s", "--shell", default=None, help="set the shell to use")
     arg_parser.add_argument(
-        "-s", "--shell", default=None,
-        help="set the shell to use"
+        "-x",
+        "--x-trace",
+        action="store_true",
+        help="trace each step by passing '-x' to the shell",
     )
-    arg_parser.add_argument(
-        "-x", "--x-trace", action="store_true",
-        help="trace each step by passing '-x' to the shell"
-    )
-    arg_parser.add_argument(
-        "file", help="files", type=argparse.FileType("r")
-    )
-    arg_parser.add_argument(
-        "args", help="additional arguments", nargs="*"
-    )
+    arg_parser.add_argument("file", help="files", type=argparse.FileType("r"))
+    arg_parser.add_argument("args", help="additional arguments", nargs="*")
 
     args = arg_parser.parse_args()
     com(args.file, args.args, args.dry_run, args.shell, args.x_trace)

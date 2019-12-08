@@ -42,10 +42,7 @@ from unicodedata import normalize
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
 SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.fandom.com"
 REDIRECT_RE = r"href=['\"](https?://lyrics.fandom.com/[^'\"]*)['\"]"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible)",
-    "Referer": "www.google.com"
-}
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible)", "Referer": "www.google.com"}
 
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/lyrics")
 if not os.path.exists(CACHE_DIR):
@@ -125,20 +122,27 @@ def main():
     """Argument parsing."""
     arg_parser = argparse.ArgumentParser(
         prog="lyrics",
-        description="retrieve lyrics from lyrics.fandom.com using keywords"
+        description="retrieve lyrics from lyrics.fandom.com using keywords",
     )
     arg_parser.add_argument(
-        "-f", "--force", action="store_true", default=False,
-        help="force download lyrics (overwrites cache)"
+        "-f",
+        "--force",
+        action="store_true",
+        default=False,
+        help="force download lyrics (overwrites cache)",
     )
     group = arg_parser.add_mutually_exclusive_group()
     group.add_argument(
-        "-e", "--edit", action="store_true",
-        help="edit cached lyrics file using $EDITOR"
+        "-e",
+        "--edit",
+        action="store_true",
+        help="edit cached lyrics file using $EDITOR",
     )
     group.add_argument(
-        "-c", "--cat", action="store_true",
-        help="write to stdout instead of using pager"
+        "-c",
+        "--cat",
+        action="store_true",
+        help="write to stdout instead of using pager",
     )
     arg_parser.add_argument("keyword", help="search keywords", nargs="+")
     args = arg_parser.parse_args()
