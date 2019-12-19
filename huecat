@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# huecat is a Python 3 script to concatenate files and print on the
+# standard output garishly.  The basic usage is
+#
+#   huecat [<file>...]
+#
+# huecat requires a terminal emulator that supports 256 colors.  For
+# more information on the arguments, run
+#
+#   huecat --help
+#
+# huecat was inspired by the lolcat [1] Ruby gem but uses a much more
+# simpler algorithm.  huecat is so rainbow rhythms! [2]
+#
+#   $ fortune | cowsay | huecat
+#   $ fortune | cowsay | huecat -r -32
+#
+# [1]: https://github.com/busyloop/lolcat
+# [2]: https://i.imgur.com/7H5knt6.png
+#
+
+from __future__ import division
+
+import argparse
+import random
+import sys
+from colorsys import hsv_to_rgb
+
+
+class huecat(object):
+    def __init__(self, row_period, col_period, seed, force):
+        self.row_period = row_period
+        self.col_period = col_period
+        self.force = force
+
+        self.rows = 0
+
+        if not seed:
+            self.seed = random.randint(0, max(row_period, col_period))
+        else:
+            self.seed = seed
+
+        if self.force or sys.stdout.isatty():
+            self.colored = True
+        else:
+            self.colored = False
+
+        self.output = sys.stdout
+
+    def rgb_to_ascii(self, r, g, b):
+        """Return the ASCII color code for the given RGB values."""
+        return "\033[38;5;%dm" % int(36 * r + 6 * g + b + 16)
+
+    def color(self, char, x, y):
+        """Colorize the character at position (x, y)."""
+        # A simple periodic boundary condition.
+        hue = (x / self.col_period + y / self.row_period) % 1
+        r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
+
+        # Take out harsh colors and map from [0, 1] -> [1, 5].
+        r = 1.0 + round(4 * r)
+        g = 1.0 + round(4 * g)
+        b = 1.0 + round(4 * b)
+
+        return "%s%s" % (self.rgb_to_ascii(r, g, b), char)
+
+    def cat(self, fd):
+        """Colorize each line of the file descriptor."""
+        if fd.closed:
+            return None
+
+        if self.colored:
+            for y, line in enumerate(fd):
+                for x, char in enumerate(line):
+                    self.output.write(
+                        self.color(char, x + self.seed, y + self.rows + self.seed)
+                    )
+
+            self.rows += y
+
+            # Reset terminal.
+            self.output.write("\033[0m")
+            self.output.flush()
+        else:
+            while True:
+                buff = fd.read(16 * 1024)
+                if buff:
+                    self.output.write(buff)
+                else:
+                    break
+
+        fd.close()
+
+
+def main():
+    """CLI argument parsing."""
+    parser = argparse.ArgumentParser(
+        prog="huecat",
+        description="concatenate files and print on the standard output garishly",
+    )
+    parser.add_argument(
+        "files",
+        default=[sys.stdin],
+        help="input files",
+        metavar="FILE",
+        nargs="*",
+        type=argparse.FileType("r"),
+    )
+    parser.add_argument(
+        "-r",
+        "--row-period",
+        default=32,
+        help="colors should repeat after %(metavar)s rows (default: %(default)s)",
+        metavar="ROW",
+        type=int,
+    )
+    parser.add_argument(
+        "-c",
+        "--col-period",
+        default=64,
+        help="colors should repeat after %(metavar)s columns (default: %(default)s)",
+        metavar="COL",
+        type=int,
+    )
+    parser.add_argument(
+        "-s",
+        "--seed",
+        default=None,
+        help="seed for colorizer (default: random)",
+        type=int,
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        default=False,
+        help="force color even if stdout is not attached to a terminal",
+    )
+
+    args = parser.parse_args()
+    cat = huecat(
+        row_period=args.row_period,
+        col_period=args.col_period,
+        seed=args.seed,
+        force=args.force,
+    )
+
+    for fd in args.files:
+        cat.cat(fd)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)
