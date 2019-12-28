@@ -21,8 +21,6 @@
 # [2]: https://i.imgur.com/7H5knt6.png
 #
 
-from __future__ import division
-
 import argparse
 import random
 import sys
