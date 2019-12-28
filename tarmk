@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# NAME
+#
+#   tarmk - extract tarballs and run make
+#
+# SYNOPSIS
+#
+#   tarmk <file> [<arg>...]
+#
+# DESCRIPTION
+#
+#   tarmk is a simple script to extract tarballs containing a makefile
+#   into a temporary directory and run make with optional arguments.
+#   This way, tarmk functions as a rudimentary package installer, e.g.,
+#   to install sic, one could do
+#
+#     wget https://dl.suckless.org/tools/sic-1.2.tar.gz
+#     tarmk sic-1.2.tar.gz install
+#
+# DEPENDENCIES
+#
+#   mktemp(1), tar(1)
+#
+
+
+set -e
+
+[ -f "$1" ] || {
+    echo >&2 "usage: ${0##*/} <file> [<arg>...]"
+    exit 1
+}
+
+tmpdir=$(mktemp -d)
+trap 'cd / && rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+tar -C "$tmpdir" -xvzf "$1" && shift
+makefile=$(find "$tmpdir" -type f -name '[Mm]akefile' -print -quit)
+cd "${makefile%/*}" && make "$@"
