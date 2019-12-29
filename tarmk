@@ -6,17 +6,21 @@
 #
 # SYNOPSIS
 #
-#   tarmk <file> [<arg>...]
+#   tarmk [-m] <file> [<arg>...]
+#
+# OPTIONS
+#
+#   -m, --makefile-only     extract only the makefile
 #
 # DESCRIPTION
 #
 #   tarmk is a simple script to extract tarballs containing a makefile
 #   into a temporary directory and run make with optional arguments.
 #   This way, tarmk functions as a rudimentary package installer, e.g.,
-#   to install sic, one could do
+#   to install sic (a simple IRC client), one could do
 #
-#     wget https://dl.suckless.org/tools/sic-1.2.tar.gz
-#     tarmk sic-1.2.tar.gz install
+#   $ wget https://dl.suckless.org/tools/sic-1.2.tar.gz
+#   $ tarmk sic-1.2.tar.gz install
 #
 # DEPENDENCIES
 #
@@ -25,15 +29,20 @@
 
 set -e
 
-[ -f "$1" ] || {
-    echo >&2 "usage: ${0##*/} <file> [<arg>...]"
-    exit 1
-}
-
-tmpdir=$(mktemp -d)
-trap 'cd / && rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+exdir=$(mktemp -d)
+trap 'cd / && rm -rf "$exdir" >/dev/null 2>&1' EXIT
 trap 'exit 2' HUP INT QUIT TERM
 
-tar -C "$tmpdir" -xvzf "$1" && shift
-makefile=$(find "$tmpdir" -type f -name '[Mm]akefile' -print -quit)
-cd "${makefile%/*}" && make "$@"
+case "$1" in
+    -m|--makefile-only)
+        shift; path="$(tar -tf "$1" | grep -i makefile | head -n 1)"
+        tar -C "$exdir" -xvzf "$1" "$path" ;;
+    -*|"")
+        echo >&2 "usage: ${0##*/} <file> [<arg>...]"
+        exit 1 ;;
+    *)
+        tar -C "$exdir" -xvzf "$1" ;;
+esac
+
+makefile=$(find "$exdir" -type f -iname 'makefile' -print -quit)
+shift; cd "${makefile%/*}" && make "$@"
