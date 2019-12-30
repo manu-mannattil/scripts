@@ -24,7 +24,7 @@
 #
 # DEPENDENCIES
 #
-#   mktemp(1), tar(1)
+#   mktemp(1) and tar(1)
 #
 
 set -e
@@ -36,12 +36,12 @@ trap 'exit 2' HUP INT QUIT TERM
 case "$1" in
     -m|--makefile-only)
         shift; path="$(tar -tf "$1" | grep -i makefile | head -n 1)"
-        tar -C "$exdir" -xvzf "$1" "$path" ;;
+        tar -C "$exdir" -xvf "$1" "$path" ;;
     -*|"")
-        echo >&2 "usage: ${0##*/} <file> [<arg>...]"
+        echo >&2 "usage: ${0##*/} [-m] <file> [<arg>...]"
         exit 1 ;;
     *)
-        tar -C "$exdir" -xvzf "$1" ;;
+        tar -C "$exdir" -xvf "$1" ;;
 esac
 
 makefile=$(find "$exdir" -type f -iname 'makefile' -print -quit)
