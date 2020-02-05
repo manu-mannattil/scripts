@@ -34,7 +34,7 @@ do
         chmod -v "$fperm" "$arg"
     elif [ -d "$arg" ]
     then
-        find "$arg" -type d -exec chmod -v "$dperm" {} +
-        find "$arg" -type f -exec chmod -v "$fperm" {} +
+        find "$arg" -type d -exec chmod -c "$dperm" {} +
+        find "$arg" -type f -exec chmod -c "$fperm" {} +
     fi
 done
