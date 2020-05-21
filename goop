@@ -91,7 +91,7 @@ def detox(files, recurse=False, lower_case=False, dry=False):
                         rename(root, f, lower_case, dry)
 
             # Finally, rename the parent as well.
-            rename("", name, lower_case, dry)
+            rename(os.path.dirname(name), os.path.basename(name), lower_case, dry)
         except Exception as e:
             print(e, file=sys.stderr)
             return 1
