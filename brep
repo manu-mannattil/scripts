@@ -16,7 +16,8 @@
 #   alternative to all these programs.  brep is a GNU grep(1) wrapper in
 #   about 70 lines of Bash.  Of course, brep is only as fast as grep(1)
 #   is.  Thus, if efficiency is a very critical requirement, then you
-#   should not use brep.
+#   should not use brep.  brep is inspired by a strong preference for
+#   conservatism over innovation in software.
 #
 # USAGE/OPTIONS
 #
@@ -61,7 +62,7 @@ do
     # If the argument is a regular file/directory, assume that the user
     # wants to grep the file/directory.  Otherwise assume that it's
     # a glob to restrict matches.
-    [[ -e "$1" ]] && files+=("$1") || args+=(--include="$1")
+    [[ -e "$1" ]] && files+=( "$1" ) || args+=( --include="$1" )
 
     shift
 done
@@ -71,12 +72,12 @@ while [[ "$1" ]]
 do
     # Now that we're done with files, process aliases.
     case "$1" in
-        -ed) args+=("--exclude-dir=${2}"); shift 2 ;;
-        -ef) args+=("--exclude=${2}"); shift 2     ;;
-        -if) args+=("--include=${2}"); shift 2     ;;
+        -ed) args+=( "--exclude-dir=${2}" ); shift 2 ;;
+        -ef) args+=( "--exclude=${2}" ); shift 2     ;;
+        -if) args+=( "--include=${2}" ); shift 2     ;;
         -ns|--no-smart)
-             smart="no"; shift                     ;;
-        *)   args+=("$1"); shift                   ;;
+             smart="no"; shift                       ;;
+        *)   args+=( "$1" ); shift                   ;;
     esac
 done
 
@@ -94,7 +95,7 @@ args+=(
 [[ "$smart" == "yes" ]] && {
     # Smart regex: if the pattern contains at least one upper-case
     # letter, assume that the user wants a case-sensitive search.
-    [[ "$patt" =~ [A-Z] ]] || args+=(--ignore-case)
+    [[ "$patt" =~ [A-Z] ]] || args+=( --ignore-case )
 
     # Ignore some common VCS directories, backup files, etc.
     # Curated from the ack source: https://beyondgrep.com/
