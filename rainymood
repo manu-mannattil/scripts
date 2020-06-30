@@ -5,16 +5,16 @@
 #   rainymood - play rain sounds from rainymood.com
 #
 # SYNOPSIS
-#   
+#
 #   rainymood [<mood>]
 #
 # DESCRIPTION
-#   
+#
 #   rainymood is a script that will play rain sounds from rainymood.com.
 #   By default a random track (i.e., mood) will be selected.
-# 
+#
 # DEPENDENCIES
-#   
+#
 #   curl(1), mplayer(1)
 #
 
