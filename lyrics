@@ -60,6 +60,7 @@ def sanitize(string):
     string = normalize("NFKD", string).encode("ASCII", "ignore")
     string = string.decode("ASCII")
     string = string.lower()
+    string = re.sub(r"['\"]+", "", string)
     string = re.sub(r"[([{][^\]})]*[\]})]", "", string)
     string = re.sub(r"^\W+", "", string)
     string = re.sub(r"\W+$", "", string)
