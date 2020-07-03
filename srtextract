@@ -25,16 +25,15 @@
 }
 
 ffmpeg_srt_extract() {
-    [ -n "$3" ] && out="${1%.*}_${3}.srt" || out="${1%.*}.srt"
-    ffmpeg -loglevel -8 -i "$1" -map "$2" "$out" &&
-        echo >&2 "${0##*/}: subtitle written to $out"
+    ffmpeg -loglevel -8 -i "$1" -map "$2" "${1%.*}.srt" &&
+        echo >&2 "${0##*/}: subtitle written to ${1%.*}.srt"
 }
 
-for f in "$@"
+for f
 do
     ffmpeg_srt_extract "$f" $(
         ffprobe -i "$f" 2>&1 \
             | grep "subrip"  \
-            | sed 's/^[ \t]*Stream #\([0-9]\{1,\}:[0-9]\{1,\}\)(\([^)]*\)).*/\1\t\2/p'
+            | sed 's/^[ \t]*Stream #\([0-9]\{1,\}:[0-9]\{1,\}\).*/\1/p'
     )
 done
