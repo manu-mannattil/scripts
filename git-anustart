@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# NAME
+#
+#   git-anustart - clear repository history and push to remote
+#
+# SYNOPSIS
+#
+#   git anustart [<remote>]
+#
+# DESCRIPTION
+#
+#   git-anustart (pronounced "git a new start") clears the history of
+#   a Git repository, recreates it from scratch with a single commit,
+#   and pushes it to the given remote.
+#
+# SEE ALSO
+#
+#   Arrested Development
+#
+
+set -eu
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo >&2 "${0##*/}: not a git repository"
+    exit 1
+}
+
+[ "$*" ] || set -- "origin"
+url=$(git remote get-url --push "$1")
+
+read -rp "Clear commit history and push to remote '$1' [no/yes]? " ans
+if [ "$ans" = "yes" ]
+then
+    rm -rf .git
+    git init
+    git add --all
+    git commit
+
+    git remote add "$1" "$url"
+    git push --mirror --force
+else
+    echo >&2 "${0##*/}: not cleared"
+    exit 0
+fi
