@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   apt-squeaky-clean - autoremove packages and clean system
+#
+# SYNOPSIS
+#
+#   apt-squeaky-clean
+#
+# DESCRIPTION
+#
+#   apt-squeaky-clean clears APT's cache and also removes residual and
+#   broken packages.
+#
+
+[[ $(id -u) == 0 ]] || exec sudo -- "$0" "$@"
+
+apt --yes autoremove
+apt --yes clean
+
+# Purge residual packages.
+IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep '^rc' | cut -d ' ' -f 3)
+[[ ${#pkgs[@]} == 0 ]] || dpkg --purge "${pkgs[@]}"
+
+# Purge broken packages.
+IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep '^iU' | cut -d ' ' -f 3)
+[[ ${#pkgs[@]} == 0 ]] || dpkg --purge "${pkgs[@]}"
