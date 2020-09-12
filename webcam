@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   webcam - play webcam feed using mpv
+#
+# SYNOPSIS
+#
+#   webcam [<video_device>]
+#
+# DEPENDENCIES
+#
+#   mpv(1)
+#
+
+[ "$*" ] || set -- av://v4l2:/dev/video0
+
+# MJPEG has a higher framerate than the default YUYV format.
+exec mpv --demuxer-lavf-format=video4linux2 \
+         --demuxer-lavf-o-set=input_format=mjpeg \
+         --profile=low-latency \
+         --untimed "$@"
