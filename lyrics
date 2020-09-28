@@ -18,11 +18,11 @@
 #
 #   lyrics rebecca black friday
 #
-# * Example with MPD
+# * Example with MPD:
 #
 #   lyrics $(mpc --format '%artist% %title%' | head -n 1)
 #
-# * Example with DeaDBeeF
+# * Example with DeaDBeeF:
 #
 #   lyrics $(deadbeef --nowplaying '%a %t' 2>/dev/null)
 #

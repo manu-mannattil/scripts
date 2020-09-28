@@ -6,7 +6,7 @@
 #
 # DESCRIPTION
 #
-#   plmgr is a media player agnostic playlist manager.  It's only
+#   plmgr is a media player agnostic playlist manager.  Its only
 #   purpose is to add/delete the currently playing track from a playlist
 #   file.
 #

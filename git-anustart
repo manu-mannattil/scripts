@@ -40,6 +40,6 @@ then
     git remote add "$1" "$url"
     git push --mirror --force
 else
-    echo >&2 "${0##*/}: not cleared"
+    echo >&2 "${0##*/}: answer was not 'yes'; not cleared"
     exit 0
 fi
