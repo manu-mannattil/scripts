@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# com is a "Not Invented Here" Python port of [1] with some minor
-# changes in function.  The basic usage is
+# com is a "Not Invented Here" Python port of Tom Duff's program of the
+# same name [1] with some minor changes in function.  The basic usage is
 #
 #   com [<options>] file [<args>]
 #
@@ -51,7 +51,9 @@
 #   % com: pdflatex {}
 #   % com: pdflatex {}
 #
-# [1]: http://www.iq0.com/duffgram/com.html
+# [1]: C source for the original is available at <http://www.iq0.com/duffgram/com.html>.
+#      Compared to the original, this version supports spaces and special
+#      characters in filenames.
 # [2]: The variable names have been inspired by GNU Parallel conventions.
 #
 
