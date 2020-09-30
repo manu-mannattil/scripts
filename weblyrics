@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# NAME
+#
+#   weblyrics - search DuckDuckGo for current song's lyrics
+#
+# SYNOPSIS
+#
+#   weblyrics [<keyword>...]
+#
+# DESCRIPTION
+#
+#   weblyrics is a simple shell script to search DuckDuckGo
+#   for the current song's lyrics (cf. lyrics(1)).
+#
+
+: ${BROWSER:=xdg-open}
+export XDG_CURRENT_DESKTOP="X-Generic"
+
+[ "$*" ] || set -- $(deadbeef --nowplaying '%a %t' 2>/dev/null)
+key=$(echo "$*" | sed 's/[^0-9a-zA-Z._-]/+/g')
+
+nohup "$BROWSER" "https://duckduckgo.com/?q=\\${key}+lyrics" </dev/null >/dev/null 2>&1 &
