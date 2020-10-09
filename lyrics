@@ -144,7 +144,7 @@ def main():
     else:
         try:
             lyrics = get_lyrics(keyword)
-            text = "{}\n---\n\n{}\n{}".format(*lyrics)
+            text = "{}\n---\n\n{}\n\n{}".format(*lyrics)
             with open(cache_file, "w") as fd:
                 fd.write(text)
         except PrintError as e:
