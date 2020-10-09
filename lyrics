@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# lyrics is a Python 3 script to retrieve lyrics from lyrics.fandom.com.
+# lyrics is a Python 3 script to retrieve lyrics from azlyrics.com
 # The basic usage is
 #
 #   lyrics [<args>] keyword...
@@ -40,8 +40,8 @@ from pydoc import pager
 from unicodedata import normalize
 
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
-SEARCH_URL = "https://www.google.com/search?btnI&q=site:lyrics.fandom.com"
-REDIRECT_RE = r"href=['\"](https?://lyrics.fandom.com/[^'\"]*)['\"]"
+SEARCH_URL = "https://www.google.com/search?btnI&q=site:www.azlyrics.com"
+REDIRECT_RE = r"href=['\"](https?://www.azlyrics.com/[^'\"]*)['\"]"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible)", "Referer": "www.google.com"}
 
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/lyrics")
@@ -87,43 +87,26 @@ def get_lyrics(keyword):
         soup = BeautifulSoup(req.text, features="html.parser")
 
     # Extract metadata.
-    try:
-        metadata = soup.find("h1", {"class": "page-header__title"}).get_text()
-    except AttributeError:
+    meta = re.match("^(.*)\W+Lyrics\W+AZLyrics.com\W*$", soup.find("title").string)
+    if meta:
+        meta = meta.group(1)
+    else:
         raise PrintError("Error retrieving lyrics for the given keyword.\n" + url)
 
-    match = re.match(r"^([^:]*):(.*)", metadata)
-    if match:
-        artist, title = match.groups()
-        title = re.sub(r" Lyrics$", "", title)
-    else:
-        raise PrintError("Error extracting metadata from HTML.\n" + req.url)
-
     # Extract lyrics.
-    lyrics_boxes = soup.find_all("div", {"class": "lyricbox"})
-    if lyrics_boxes is None:
+    divs = soup.find_all("div", attrs={"class": None, "id": None})
+    if divs is None:
         raise PrintError("Error extracting lyrics from HTML.\n" + req.url)
 
-    # Remove fluff.
-    lyrics = ""
-    for box in lyrics_boxes:
-        for br in box.find_all("br"):
-            br.replace_with("\n")
-        for script in box.find_all("script"):
-            script.extract()
-        for ringtone in box.find_all(attrs={"class": "rtMatcher"}):
-            ringtone.extract()
-
-        lyrics += box.text.strip() + "\n"
-
-    return artist, title, lyrics, req.url
+    lyrics = "\n".join([d.get_text().strip() for d in divs])
+    return meta, lyrics, req.url
 
 
 def main():
     """Argument parsing."""
     arg_parser = argparse.ArgumentParser(
         prog="lyrics",
-        description="retrieve lyrics from lyrics.fandom.com using keywords",
+        description="retrieve lyrics from azlyrics.com using keywords",
     )
     arg_parser.add_argument(
         "-f",
@@ -161,7 +144,7 @@ def main():
     else:
         try:
             lyrics = get_lyrics(keyword)
-            text = "{} - {}\n---\n\n{}\n{}".format(*lyrics)
+            text = "{}\n---\n\n{}\n{}".format(*lyrics)
             with open(cache_file, "w") as fd:
                 fd.write(text)
         except PrintError as e:
