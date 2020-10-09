@@ -18,7 +18,7 @@
 #   $ fortune | cowsay | huecat -r -32
 #
 # [1]: https://github.com/busyloop/lolcat
-# [2]: https://i.imgur.com/7H5knt6.png
+# [2]: https://i.imgur.com/g5YxOKw.png
 #
 
 import argparse
