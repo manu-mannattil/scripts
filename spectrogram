@@ -2,49 +2,46 @@
 #
 # NAME
 #
-#   spectrogram - make spectrograms using FFmpeg and SoX
+#   spectrogram - make audio file spectrograms using FFmpeg and SoX
 #
 # SYNOPSIS
 #
-#   spectrogram <file>...
+#   spectrogram <file> [<args>...]
 #
 # DESCRIPTION
 #
 #   spectrogram is a simple script to create a spectrogram of an audio
 #   file using SoX. This can be useful to determine if the file has the
-#   right bit-rate as advertised.   If SoX fails to create the
+#   right bitrate as advertised.   If SoX fails to create the
 #   spectrogram in the first attempt, the audio file is converted to
 #   a PCM WAV file using FFmpeg.
 #
+# OPTIONS
+#
+#   All options accepted by SoX's spectrogram effect can be passed to
+#   this script.  The first argument must however be the name of the
+#   audio file.
+#
 # DEPENDENCIES
 #
-#   ffmpeg(1), mktemp(1), sox(1)
+#   ffmpeg(1) and sox(1)
 #
 
+set -eu
+
 [ "$*" ] || {
-    echo >&2 "usage: ${0##*/} <file>..."
+    echo >&2 "usage: ${0##*/} <file>... [<args>...]"
+    sox >&2 --help-effect spectrogram
     exit 1
 }
 
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
-trap 'exit 2' HUP INT QUIT TERM
+file="$1"; shift
+set -- -y 513 -X 15 -l -o "$file.png" "$@"
 
-for file
-do
-    if ! sox "$file" -n spectrogram -o "${file%.*}.png" >/dev/null 2>&1
-    then
-        echo >&2 "${0##*/}: '${file}' has an unknown format; using ffmpeg"
+sox "$file" -n spectrogram "$@" >/dev/null 2>&1 || {
+    echo >&2 "${0##*/}: '$file' has an unknown format; using ffmpeg"
 
-        # I can't seem to get this done using pipes.  So this
-        # will have to do for now.
-        wav=$(mktemp -p "$tmpdir" "audio.XXXXXX.wav")
-
-        if ffmpeg -y -i "$file" "$wav" >/dev/null 2>&1
-        then
-            sox "$wav" -n spectrogram -o "${file%.*}.png"
-        else
-            echo >&2 "${0##*/}: ffmpeg failed to convert file '${file}'"
-        fi
-    fi
-done
+    ffmpeg -y -i "$file" -f wav - 2>/dev/null               |
+        sox -t wav - -n spectrogram "$@" >/dev/null  2>&1   ||
+        echo >&2 "${0##*/}: ffmpeg+sox failed on '$file'"
+}
