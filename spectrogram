@@ -38,10 +38,11 @@ set -eu
 file="$1"; shift
 set -- -y 513 -X 15 -l -o "$file.png" "$@"
 
-sox "$file" -n spectrogram "$@" >/dev/null 2>&1 || {
-    echo >&2 "${0##*/}: '$file' has an unknown format; using ffmpeg"
-
-    ffmpeg -y -i "$file" -f wav - 2>/dev/null               |
-        sox -t wav - -n spectrogram "$@" >/dev/null  2>&1   ||
+if sox --info "$file" 2>&1 | grep -q "FAIL format"
+then
+    echo >&2 "${0##*/}: format error on '$file'; using ffmpeg"
+    ffmpeg -y -i "$file" -f wav - | sox -t wav - -n spectrogram "$@" ||
         echo >&2 "${0##*/}: ffmpeg+sox failed on '$file'"
-}
+else
+    sox "$file" -n spectrogram "$@"
+fi
