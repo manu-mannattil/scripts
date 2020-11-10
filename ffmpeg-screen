@@ -1,0 +1,59 @@
+#!/bin/sh
+#
+# NAME
+#
+#   ffmpeg-screen - take screenshots of a video using ffmpeg
+#
+# SYNOPSIS
+#
+#   ffmpeg-screen [-n <frames>] <file>...
+#
+# DESCRIPTION
+#
+#   ffmpeg-screen is a shell script to take screenshots of a video using
+#   ffmpeg.
+#
+# OPTIONS
+#
+#   -n      number of frames to capture
+#
+# DEPENDENCIES
+#
+#   ffmpeg(1) and mediainfo(1)
+#
+
+frames=6
+
+while getopts ":n:" opt
+do
+    case "$opt" in
+        n)  frames="$OPTARG" ;;
+        :)  printf >&2 "%s: -%s requires an argument\n" "${0##*/}" "$OPTARG"
+            exit 1 ;;
+        \?) printf >&2 "%s: -%s is not a valid option\n" "${0##*/}" "$OPTARG"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+
+for video
+do
+    # Adapted from https://superuser.com/a/821680
+    duration=$(echo "$(mediainfo --Inform='Video;%Duration%' "$1")"/1000 | bc)
+    echo >&2 "${0##*/}: $video: total duration $duration seconds."
+    for i in $(seq "$frames")
+    do
+        output=$(printf "${video%.*}-%03d.jpg" "$i")
+        time=$(echo "($i - 0.5)*$duration/$frames" | bc)
+        ffmpeg  -y                            \
+                -hide_banner                  \
+                -loglevel panic               \
+                -ss "$time"                   \
+                -i "$video"                   \
+                -vf select="eq(pict_type\,I)" \
+                -vframes 1                    \
+                "$output"
+        echo >&2 "${0##*/}: screenshot $output (@${time}s)"
+    done
+done
