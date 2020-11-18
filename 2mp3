@@ -1,17 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # NAME
 #
-#   2mp3 - convert audio files into LAME encoded MP3s using FFmpeg.
+#   2mp3 - convert audio files into LAME encoded MP3s using ffmpeg.
 #
 # SYNOPSIS
 #
-#   2mp3 [-fhv] [-q <quality>] <input>...
+#   2mp3 [-q <quality>] <input>...
 #
 # OPTIONS
 #
 #   -f            Force overwrite files.
-#   -q <quality>  LAME preset (must be between 0 and 9); default = 0.
+#   -q <quality>  LAME preset [0-9] or bitrate (e.g., 192k)
 #
 #   Preset       Average Kbit/s              Kbit/s range
 #   ------       --------------              ------------
@@ -28,7 +28,19 @@
 #
 #   For more see: http://wiki.hydrogenaud.io/index.php?title=LAME
 #
+# DESCRIPTION
+#
+#   2mp3 is a wrapper script around ffmpeg to convert audio files to
+#   LAME encoded MP3s.  By default it will use the V0 LAME preset.  Note
+#   that this script produces "bad" transcodes [1] since ffmpeg does
+#   not produce MP3s which can be identified as encoded by LAME (i.e.,
+#   no special LAME header tags).
+#
 # EXAMPLES
+#
+#   * Convert an FLAC into 192kbps CBR MP3:
+#
+#     $ 2mp3 -q 192 file.flac
 #
 #   * Convert all APEs in the current directory to MP3
 #
@@ -40,57 +52,86 @@
 #     $ find -type f -name '*.flac' | parallel 2mp3 -q 2
 #
 # DEPENDENCIES
-#   
+#
 #   ffmpeg(1)
 #
+# [1]: https://redacted.ch/wiki.php?action=article&id=295
+#
+
+set -eu
+set -o pipefail
 
 info() {
     echo >&2 "${0##*/}: $*"
 }
 
 force="no"
-quality=0
+quality=( -q:a 0 )
+partial="2MP3_PARTIAL_CONVERTION"
 
 while getopts ":fhq:" opt
 do
     case "$opt" in
-        h)  echo >&2 "usage: 2mp3 [-fh] [-q <quality>] <file>..."
+        h)  echo >&2 "usage: 2mp3 [-q <quality>] <file>..."
             exit 0 ;;
-        f)  force="yes" ;;
-        q)  quality="$OPTARG" ;;
-        :)  info "${OPTARG} requires an argument"
+        q)  if [[ "$OPTARG" =~ ^[Vv]?[0-9]$ ]]
+            then
+                quality=( -q:a "$OPTARG" )
+            elif [[ "$OPTARG" =~ ^([0-9]{2,})[kK]? ]]
+            then
+                quality=( -b:a "${BASH_REMATCH[1]}k" )
+            else
+                echo >&2 "${0##*/}: invalid LAME preset/bitrate"
+            fi ;;
+        :)  info "$OPTARG requires an argument"
             exit 1 ;;
-        \?) info "${OPTARG} is not a valid options"
+        \?) info "$OPTARG is not a valid option"
             exit 1 ;;
     esac
 done
 shift $(( OPTIND - 1 ))
 
-if [ "$*" ]
+if [[ "$*" ]]
 then
     for file
     do
-        if [ ! -f "$file" ]
+        # Check if a conversion was attempted previously and delete
+        # partials if any.
+        output="${file%.*}.mp3"
+        [[ -f "$file.$partial" ]] && [[ -f "$output" ]] && {
+            echo >&2 "${0##*/}: removing partial convertion '$output'"
+            rm -f "$output" "$file.$partial"
+        }
+
+        [[ -f "$file" ]] || {
+            echo >&2 "${0##*/}: '$file' is not a valid audio file; skipping."
+            continue
+        }
+
+        [[ -f "$output" ]] && {
+            echo >&2 "${0##*/}: '$file' has already has an MP3 version"
+            echo >&2 "${0##*/}: to force conversion, delete $output"
+            continue
+        }
+
+        # Write input file name and quality to a temporary file,
+        # and begin conversion.
+        echo "file = $file; quality = ${quality[@]}" >"$file.$partial"
+        if ffmpeg -v error        \
+                  -y              \
+                  -vn             \
+                  -i "$file"      \
+                  -c:a libmp3lame \
+                  "${quality[@]}" \
+                  "$output"
         then
-            info "'${file}' is not a valid audio file; skipping."
-        elif [ "${file##*.}" = "mp3" ]
-        then
-            info "'${file}' is already an MP3 encoded file; skipping"
-        elif [ -f "${file%.*}.mp3" ] && [ "$force" = "no" ]
-        then
-            info "'${file%.*}.mp3' exists; skipping"
+            echo >&2 "${0##*/}: '$file' -> '$output'"
+            rm -f "$file.$partial"
         else
-            ffmpeg -v error          \
-                   -y                \
-                   -vn               \
-                   -i "$file"        \
-                   -c:a libmp3lame   \
-                   -q:a "$quality"   \
-                   "${file%.*}.mp3" &&
-            info "'${file}' -> '${file%.*}.mp3'"
+            echo >&2 "${0##*/}: '$file' conversion failed!"
         fi
     done
 else
-    echo >&2 "usage: 2mp3 [-fh] [-q <quality>] <file>..."
-    exit 0
+    echo >&2 "usage: 2mp3 [-q <quality>] <file>..."
+    exit 1
 fi
