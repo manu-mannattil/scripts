@@ -84,13 +84,12 @@ done
 # Default grep options.
 args+=(
     --binary-files=without-match
+    --color=auto
     --dereference-recursive
     --devices=skip
+    --line-number
     --perl-regexp
 )
-
-# Only add color and line number if the stdout is attach to a terminal.
-[[ -t 1 ]] && args+=( --color=auto --line-number )
 
 [[ "$smart" == "yes" ]] && {
     # Smart regex: if the pattern contains at least one upper-case

@@ -109,7 +109,7 @@ then
         }
 
         [[ -f "$output" ]] && {
-            echo >&2 "${0##*/}: '$file' has already has an MP3 version"
+            echo >&2 "${0##*/}: '$file' already has an MP3 version"
             echo >&2 "${0##*/}: to force conversion, delete $output"
             continue
         }
