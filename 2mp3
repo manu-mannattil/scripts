@@ -42,7 +42,7 @@
 #
 #     $ 2mp3 -q 192 file.flac
 #
-#   * Convert all APEs in the current directory to MP3
+#   * Convert all APEs in the current directory to MP3:
 #
 #     $ parallel 2mp3 ::: *.ape
 #
@@ -95,24 +95,26 @@ if [[ "$*" ]]
 then
     for file
     do
-        # Check if a conversion was attempted previously and delete
-        # partials if any.
-        output="${file%.*}.mp3"
-        [[ -f "$file.$partial" ]] && [[ -f "$output" ]] && {
-            echo >&2 "${0##*/}: removing partial convertion '$output'"
-            rm -f "$output" "$file.$partial"
-        }
-
         [[ -f "$file" ]] || {
             echo >&2 "${0##*/}: '$file' is not a valid audio file; skipping."
             continue
         }
 
-        [[ -f "$output" ]] && {
-            echo >&2 "${0##*/}: '$file' already has an MP3 version"
-            echo >&2 "${0##*/}: to force conversion, delete $output"
-            continue
-        }
+        # Check if a conversion was attempted previously and delete
+        # partials if any.
+        output="${file%.*}.mp3"
+        if [[ -f "$output" ]]
+        then
+            if [[ -f "$file.$partial" ]]
+            then
+                echo >&2 "${0##*/}: removing partial convertion '$output'"
+                rm -f "$output" "$file.$partial"
+            else
+                echo >&2 "${0##*/}: '$file' already has an MP3 version"
+                echo >&2 "${0##*/}: to force conversion, delete $output"
+                continue
+            fi
+        fi
 
         # Write input file name and quality to a temporary file,
         # and begin conversion.
