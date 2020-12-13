@@ -16,7 +16,7 @@
 
 [[ $(id -u) == 0 ]] || exec sudo -- "$0" "$@"
 
-apt --yes autoremove
+apt --yes --purge autoremove
 apt --yes clean
 
 # Purge residual packages.
