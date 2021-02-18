@@ -11,79 +11,71 @@
 # DESCRIPTION
 #
 #   This is a display rotation script to be used with a ThinkPad X230t
-#   tablet.  With trivial modifications one can also use it with other
-#   tablets.  The supplied rotation can be the usual ones defined by
-#   xrandr, i.e., "normal", "inverted", "left", and "right".
+#   tablet.  With trivial modifications one should also be able use it
+#   with other Wacom tablets.  The supplied rotation can be the usual
+#   ones defined by xrandr(1) and xsetwacom(1), i.e.,
+#
+#       normal, none        no rotation
+#       inverted, half      inverted display, "left", and "right".
+#       left, ccw           ccw rotation from normal by 90 degrees
+#       right, cw           cw rotation from normal by 90 degrees
+#
 #   Additionally, we define the following two rotations:
 #
-#       flip        switch between normal and inverted, or left and right
-#       sideways    switch between normal and left, or inverted and right
+#       flip                switch between normal and inverted,
+#                           or left and right
+#       sideways            switch between normal and left,
+#                           or inverted and right
 #
 #   Since switching between rotations requires knowledge of current
-#   rotation, the current state is always written to ~/.x230t-rotation
-#   at the end of execution.  The rotation matrices were adapted from
-#
-#       https://gist.github.com/mildmojo/48e9025070a2ba40795c
+#   rotation, the current state is always written to ~/.x230t-rotate
+#   at the end of execution.
 #
 # DEPENDENCIES
 #
-#   xrandr(1) and xinput(1)
+#   xrandr(1) and xsetwacom(1)
+#
+# SEE ALSO
+#
+#   <https://github.com/martin-ueding/thinkpad-scripts>
+#   More featureful scripts that automate screen rotation.
 #
 
 # Check the output of xrandr(1) and xinput(1) and change accordingly.
 # We could parse the outputs, but that'd create an unnecessary overhead.
 screen="LVDS1"
-stylus="Wacom ISDv4 E6 Pen g"
+stylus="Wacom ISDv4 E6 Pen stylus"
 finger="Wacom ISDv4 E6 Finger touch"
 
-matrix="Coordinate Transformation Matrix"
-state="$HOME/.x230t-rotation"
-
-[ -f "$state" ] && current=$(cat "$state") || set -- "normal"
+# If there's no state file, assume that the display isn't rotated.
+state="$HOME/.x230t-rotate"
+[ -f "$state" ] && current=$(cat "$state") || current="normal"
 
 case "$1" in
-    n*) set -- "normal"   ;;
-    i*) set -- "inverted" ;;
-    l*) set -- "left"     ;;
-    r*) set -- "right"    ;;
+    n*)         set -- "normal" "none"   ;;
+    i*|half)    set -- "inverted" "half" ;;
+    l*|ccw)     set -- "left" "ccw"      ;;
+    r*|cw)      set -- "right" "cw"      ;;
     f*) case "$current" in
-            n*) set -- "inverted" ;;
-            i*) set -- "normal"   ;;
-            l*) set -- "right"    ;;
-            r*) set -- "left"     ;;
+            n*) set -- "inverted" "half" ;;
+            i*) set -- "normal" "none"   ;;
+            l*) set -- "right" "cw"      ;;
+            r*) set -- "left" "ccw"      ;;
         esac
         ;;
     s*) case "$current" in
-            n*) set -- "left"     ;;
-            i*) set -- "right"    ;;
-            l*) set -- "normal"   ;;
-            r*) set -- "inverted" ;;
+            n*) set -- "left" "ccw"      ;;
+            i*) set -- "right" "cw"      ;;
+            l*) set -- "normal" "none"   ;;
+            r*) set -- "inverted" "half" ;;
         esac
         ;;
-    *)  set -- "normal" ;;
+    *)  set -- "normal" "none" ;;
 esac
 
 xrandr --output "$screen" --rotate "$1"
-
-case "$1" in
-    normal)
-        xinput set-prop "$stylus" "$matrix" 1 0 0 0 1 0 0 0 1
-        xinput set-prop "$finger" "$matrix" 1 0 0 0 1 0 0 0 1
-        ;;
-    inverted)
-        xinput set-prop "$stylus" "$matrix" -1 0 1 0 -1 1 0 0 1
-        xinput set-prop "$finger" "$matrix" -1 0 1 0 -1 1 0 0 1
-        ;;
-    left)
-        xinput set-prop "$stylus" "$matrix" -1 1 1 0 0 0 0 1
-        xinput set-prop "$finger" "$matrix" -1 1 1 0 0 0 0 1
-        ;;
-
-    right)
-        xinput set-prop "$stylus" "$matrix" 0 1 0 -1 0 1 0 0 1
-        xinput set-prop "$finger" "$matrix" 0 1 0 -1 0 1 0 0 1
-        ;;
-esac
+xsetwacom set "$stylus" Rotate "$2"
+xsetwacom set "$finger" Rotate "$2"
 
 # Write current rotation to state file.
 echo "$1" >"$state"
