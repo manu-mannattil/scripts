@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # NAME
-#   
+#
 #   e - wrapper script to connect to the gVim server
 #
 # SYNOPSIS
@@ -9,8 +9,12 @@
 #   e [<args>...]
 #
 # DEPENDENCIES
-#   
+#
 #   gVim compiled with +clientserver
+#
+# SEE ALSO
+#
+#   vimer <https://github.com/susam/vimer>
 #
 
 # Path to the gVim executable.
