@@ -51,6 +51,7 @@ do
                 -loglevel panic               \
                 -ss "$time"                   \
                 -i "$video"                   \
+                -q:v 1                        \
                 -vf select="eq(pict_type\,I)" \
                 -vframes 1                    \
                 "$output"
