@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# com is a "Not Invented Here" Python port of Tom Duff's program of the
-# same name [1] with some minor changes in function.  The basic usage is
+# com is a "Not Invented Here" Python script inspired by Tom Duff's
+# program of the same name [1].  The basic usage is
 #
 #   com [<options>] file [<args>]
 #
@@ -25,6 +25,7 @@
 #   {//}        dirname of the full path
 #   {/.}        basename of the full path without extension
 #   {@}         additional arguments supplied
+#   {!}         MD5 digest of the full path
 #
 # The main purpose of com is to make it easier to compile simple
 # programs without writing a makefile.  For instance, a rudimentary
@@ -34,14 +35,24 @@
 #   /* com: \{ cc {} -o {.} ; \} && {.}
 #    */
 #
-#   ... contents of hello.c ...
+#   /* contents of hello.c */
 #
 # This way, the program can be compiled (and executed) by running
 #
 #   com hello.c
 #
-# In the above example, we have escaped curly braces using \{ and \} to get
-# literal { and }.
+# In the above example, we have escaped curly braces using \{ and \} to
+# get literal { and }.  This can be made even more cleaner by moving the
+# executable to $TMPDIR to get an experience similar to a scripting
+# language.
+#
+#   /* com: : ${TMPDIR:=/tmp/}
+#    * com: : ${CC:=cc}
+#    * com: : ${CFLAGS:=-Wall}
+#    * com: \{ ${CC} {} ${CFLAGS} -o ${TMPDIR}{!}; \} && ${TMPDIR}{!} {@}
+#    */
+#
+#   /* contents of hello.c */
 #
 # com can also be used to compile LaTeX files by adding the following
 # directive in the comments:
@@ -52,15 +63,17 @@
 #   % com: pdflatex {}
 #
 # [1]: C source for the original is available at <http://www.iq0.com/duffgram/com.html>.
-#      Compared to the original, this version supports spaces and special
-#      characters in filenames.
-# [2]: The variable names have been inspired by GNU Parallel conventions.
+#      Compared to the original, this version supports spaces and
+#      special characters in filenames.
+# [2]: The variable names have been inspired by GNU Parallel
+#      conventions.
 #
 
 import argparse
 import re
 import subprocess
 import sys
+from hashlib import md5
 from os import path
 from shlex import quote
 
@@ -80,6 +93,11 @@ EXTENSION_RE = {
 }
 
 
+def digest(string):
+    """Return the MD5 digest of a string."""
+    return md5(string.encode("utf-8")).hexdigest()
+
+
 def process(line, attributes):
     """Process the given line."""
     line = re.sub(attributes["regex"], "", line)
@@ -95,6 +113,7 @@ def process(line, attributes):
     line = line.replace("{//}", attributes.get("dirname", ""))
     line = line.replace("{/.}", attributes.get("stembase", ""))
     line = line.replace("{@}", attributes.get("args", ""))
+    line = line.replace("{!}", attributes.get("digest", ""))
 
     # Replace escaped {}'s if any and cleanup.
     line = line.replace("\0ob\0", "{")
@@ -114,6 +133,7 @@ def com(fd, args=None, dry_run=False, shell=None, debug=False):
         "basename": quote(path.basename(name)),  # {/}
         "dirname": quote(path.dirname(name)),  # {//}
         "stembase": quote(path.basename(path.splitext(name)[0])),  # {/.}
+        "digest": digest(name),  # {!}
     }
 
     # If there are additional arguments, quote them safely
