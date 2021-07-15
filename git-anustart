@@ -28,12 +28,14 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
 
 [ "$*" ] || set -- "origin"
 url=$(git remote get-url --push "$1")
+branch=$(git rev-parse --abbrev-ref HEAD)
 
 read -rp "Clear commit history and push to remote '$1' [no/yes]? " ans
 if [ "$ans" = "yes" ]
 then
     rm -rf .git
     git init
+    git checkout -b "$branch"
     git add --all
     git commit
 
