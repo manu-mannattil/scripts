@@ -37,7 +37,7 @@ then
     git init
     git checkout -b "$branch"
     git add --all
-    git commit
+    git commit --allow-empty-message
 
     git remote add "$1" "$url"
     git push --mirror --force
