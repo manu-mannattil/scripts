@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# NAME
+#
+#   inplace - edit a file in place
+#
+# SYNOPSIS
+#
+#   inplace <cmd> [<option>...] <file>
+#
+# DESCRIPTION
+#
+#   inplace is a helper script to replace the contents of a file with the
+#   stdout of a command that accepts the file as an argument.  For example,
+#   the command
+#
+#     inplace nl file.txt
+#
+#   will add line numbers to all lines in file.txt.  Without inplace, we would
+#   have to do the following to achieve the same effect:
+#
+#     nl file.txt >temp.txt
+#     mv -f temp.txt file.txt
+#
+# DEPENDENCIES
+#
+#   mktemp(1) and readlink(1)
+#
+
+[ $# -lt 2 ] && {
+    echo >&2 "${0##*/} <cmd> [<option>...] <file>"
+    exit 1
+}
+
+tmpfile="$(mktemp)"
+trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+# Last argument is the name of the file that's to be edited in place.
+# Also resolve links (if any).
+for name; do true; done
+[ -L "$name" ] && name=$(readlink -f -- "$name")
+
+if "$@" >"$tmpfile"
+then
+    mv -f "$tmpfile" "$name"
+else
+    echo >&2 "${0##*/}: command failed; refusing to overwrite"
+    exit 1
+fi
