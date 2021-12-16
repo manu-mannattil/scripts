@@ -62,6 +62,6 @@ done
 
 [ -d /opt/firefox ] && rm -rf /opt/firefox
 cp -r firefox /opt/
-ln -fs /opt/firefox/firefox /usr/local/bin
+ln -fs /opt/firefox/firefox /usr/bin
 
 echo >&2 "${0##*/}: install complete"
