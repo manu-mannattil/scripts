@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# NAME
+#
+#   m3ucp - copy .m3u playlists from computer to phone
+#
+# SYNOPSIS
+#
+#   m3ucp <file>...
+#
+# DESCRIPTION
+#
+#   The Media Transfer Protocol used by Android phones to transfer files
+#   does not always work well with many common GNU/Linux file managers,
+#   making it difficult to do simple operations like copying music
+#   files.  This is a script that copies an M3U playlist along with the
+#   audio files listed in it to an Android phone.
+#
+#   It does this by first hardlinking all the music files listed in the
+#   playlist to a temporary directory.  The contents of this directory
+#   is then pushed to the phone's SD card using ADB.  Also, absolute
+#   file names in the playlist are made relative so that the playlist
+#   can be opened on the phone.
+#
+# DEPENDENCIES
+#
+#   adb(1), mktemp(1), and rsync(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <file>..."
+    exit 1
+}
+
+srcdir="$HOME/music"    # source directory (on computer)
+tardir="/sdcard/Music"  # target directory (on phone)
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+for file
+do
+    m3u="$tmpdir/${file##*/}"
+    # Make paths relative.
+    sed "s|^$srcdir/||" "$file" >"$m3u"
+    cd "$srcdir"
+    rsync --files-from="$m3u" --link-dest="$srcdir" "$srcdir" "$tmpdir"
+done
+
+adb push "$tmpdir"/* "$tardir"
+
+# Refresh Android media store: https://stackoverflow.com/q/17928576
+adb shell am broadcast -a "android.intent.action.MEDIA_SCANNER_SCAN_FILE" -d "file:///$tardir"
