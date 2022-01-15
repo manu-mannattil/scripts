@@ -2,7 +2,7 @@
 #
 # NAME
 #
-#   passmenu - choose password store entries using dmenu
+#   passmenu - choose password store entries using dmenu or rofi
 #
 # SYNOPSIS
 #
@@ -11,19 +11,32 @@
 # DESCRIPTION
 #
 #   passmenu is a simple script that allows one to choose entries from
-#   a pass-managed password store using dmenu(1).
+#   a pass-managed password store using dmenu(1) or rofi(1).
 #
 # SEE ALSO
 #
-#   pass(1), dmenu(1)
+#   pass(1), dmenu(1), rofi(1)
 #
 
 shopt -s nullglob globstar
+
+pick() {
+    if command -v rofi &>/dev/null
+    then
+        rofi -dmenu -p "pass" "$@"
+    elif command -v dmenu &>/dev/null
+    then
+        dmenu "$@"
+    else
+        echo >&2 "${0##*/}: either rofi or dmenu required"
+        exit 1
+    fi
+}
 
 prefix=${PASSWORD_STORE_DIR-~/.password-store}
 files=( "$prefix"/**/*.gpg )
 files=( "${files[@]#"$prefix"/}" )
 files=( "${files[@]%.gpg}" )
 
-entry=$(printf '%s\n' "${files[@]}" | dmenu "$@")
+entry=$(printf '%s\n' "${files[@]}" | pick "$@")
 exec pass -c "$entry"
