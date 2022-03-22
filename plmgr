@@ -14,9 +14,11 @@
 #
 #   plmgr [-r] [<playlist>...]
 #   plmgr [-r] -a
+#   plmgr -e [-a] [<playlist>]
 #
 #   -r  remove song from all the playlists
 #   -a  autoselect playlist based on artist name
+#   -e  edit playlist in $EDITOR
 #
 # DEPENDENCIES
 #
@@ -35,11 +37,13 @@ die() {
 
 remove="no"
 autoartist="no"
+edit="no"
 
-while getopts ":ahr" opt
+while getopts ":aehr" opt
 do
     case "$opt" in
         a)  autoartist="yes"                       ;;
+        e)  edit="yes"                             ;;
         h)  sed -n '/^# NAME$/, /^$/ { s/^# \{0,1\}//; p }' <"$0"
             exit ;;
         r)  remove="yes"                           ;;
@@ -78,6 +82,8 @@ elif test $# -eq 0
 then
     set -- "$PLMGR_PLAYLIST_DEFAULT"
 fi
+
+test "$edit" = "yes" && exec "$EDITOR" -- "${PLMGR_PLAYLIST_DIR}/${1}"
 
 for m3u
 do
