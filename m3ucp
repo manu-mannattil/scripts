@@ -32,8 +32,8 @@
     exit 1
 }
 
-srcdir="$HOME/music"    # source directory (on computer)
-tardir="/sdcard/Music"  # target directory (on phone)
+srcdir="$HOME/music"                # source directory (on computer)
+tardir="/storage/emulated/0/Music"  # target directory (on phone)
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
 trap 'exit 2' HUP INT QUIT TERM
@@ -50,4 +50,6 @@ done
 adb push "$tmpdir"/* "$tardir"
 
 # Refresh Android media store: https://stackoverflow.com/q/17928576
+# The target directory $tardir might need to be changed to /sdcard/Music
+# for media refreshing to work.
 adb shell am broadcast -a "android.intent.action.MEDIA_SCANNER_SCAN_FILE" -d "file:///$tardir"
