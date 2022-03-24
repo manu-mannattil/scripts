@@ -14,15 +14,14 @@
 #
 
 exec wget --adjust-extension                                      \
-          --convert-links                                         \
           --continue                                              \
+          --convert-links                                         \
           --execute robots=off                                    \
           --mirror                                                \
-          --no-clobber                                            \
           --no-host-directories                                   \
-          --no-parent                                             \
           --page-requisites                                       \
-          --random-wait 0.4                                       \
-          --restrict-file-names=windows,lowercase,ascii,nocontrol \
           --prefer-family=IPv4                                    \
-          --user-agent='Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36' "$@"
+          --random-wait                                           \
+          --restrict-file-names=windows,lowercase,ascii,nocontrol \
+          --user-agent='Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36' \
+          --wait 0.5 "$@"

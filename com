@@ -46,10 +46,10 @@
 # executable to $TMPDIR to get an experience similar to a scripting
 # language.
 #
-#   /* com: : ${TMPDIR:=/tmp/}
+#   /* com: : ${TMPDIR:=/tmp}
 #    * com: : ${CC:=cc}
 #    * com: : ${CFLAGS:=-Wall}
-#    * com: \{ ${CC} {} ${CFLAGS} -o ${TMPDIR}{!}; \} && ${TMPDIR}{!} {@}
+#    * com: \{ ${CC} {} ${CFLAGS} -o ${TMPDIR}/{!}; \} && ${TMPDIR}/{!} {@}
 #    */
 #
 #   /* contents of hello.c */
@@ -83,6 +83,7 @@ EXTENSION_RE = {
     ".c": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
     ".cc": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
     ".cpp": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
+    ".dbj": r"^\s*%+\s*com\s*:\s*",
     ".go": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
     ".hs": r"^\s*({?-+|--+)\s*com\s*:\s*",
     ".js": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
@@ -92,11 +93,9 @@ EXTENSION_RE = {
     ".tex": r"^\s*%+\s*com\s*:\s*",
 }
 
-
 def digest(string):
     """Return the MD5 digest of a string."""
     return md5(string.encode("utf-8")).hexdigest()
-
 
 def process(line, attributes):
     """Process the given line."""
@@ -120,7 +119,6 @@ def process(line, attributes):
     line = line.replace("\0cb\0", "}")
 
     return line.strip()
-
 
 def com(fd, args=None, dry_run=False, shell=None, debug=False):
     """Compile a file."""
@@ -161,7 +159,6 @@ def com(fd, args=None, dry_run=False, shell=None, debug=False):
 
     return subprocess.Popen(args, shell=True, executable=shell).wait()
 
-
 def main():
     """Argument parsing."""
     arg_parser = argparse.ArgumentParser(prog="com", description="compile anything")
@@ -183,7 +180,6 @@ def main():
 
     args = arg_parser.parse_args()
     com(args.file, args.args, args.dry_run, args.shell, args.x_trace)
-
 
 if __name__ == "__main__":
     sys.exit(main())

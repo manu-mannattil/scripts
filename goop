@@ -21,7 +21,8 @@
 #
 # Also see, detox <http://detox.sourceforge.net>
 #
-# [1]: After Ms. Paltrow's eponymous detoxing company.
+# [1]: After Ms. Paltrow's eponymous detoxing company, see,
+#      https://www.bbc.com/news/world-us-canada-45426332
 #
 
 import argparse
@@ -29,7 +30,6 @@ import os
 import re
 import sys
 import unicodedata
-
 
 def rename(root, name, lower_case=False, dry=False):
     """Cleanup the filename of a file with the given root and name."""

@@ -32,7 +32,6 @@ then
     else
         nohup "$gvim" "$@" >/dev/null </dev/null 2>&1
     fi
-
 else
     if [ "$gvim_server" ]
     then
