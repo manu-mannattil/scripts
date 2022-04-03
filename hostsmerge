@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   hostsmerge - merge multiple hosts files
+#
+# SYNOPSIS
+#
+#   hostsmerge [<file>...]
+#
+# DESCRIPTION
+#
+#   hostsmerge concatenates several hosts files (either actual files or
+#   URLs), sorts the lines, and writes a merged hosts file to the
+#   standard output.
+#
+# EXAMPLES
+#
+#   Merge two hosts files host1.txt and hosts2.txt:
+#
+#     $ hostsmerge host1.txt host2.txt
+#
+#   Fetch and merge a hosts file at a given URL with a local hosts file
+#   myhosts.txt:
+#
+#     $ hostsmerge https://someonewhocares.org/hosts/ myhosts.txt
+#
+# DEPENDENCIES
+#
+#   curl(1)
+#
+
+set -e
+
+[[ "$*" ]] || set -- "-"
+
+for hosts
+do
+    # Use a simple regex for now.
+    if [[ "$hosts" =~ (www|http:|https:) ]]
+    then
+        curl -sqL "$hosts"                     |
+            sed 's/127\.0\.0\.1/0.0.0.0/'      |
+            grep '^0\.0\.0\.0'
+    else
+        sed 's/127\.0\.0\.1/0.0.0.0/' "$hosts" |
+            grep '^0\.0\.0\.0' "$hosts"
+    fi
+done | sort | uniq
