@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# NAME
+#
+#   url2pdf - convert a webpage to a PDF file using Chrome
+#
+# SYNOPSIS
+#
+#   url2pdf <url> [<file>]
+#
+# DESCRIPTION
+#
+#   url2pdf runs Google Chrome headlessly to print a webpage to a PDF
+#   file.  Printing PDFs using Google Chrome is faster than when using
+#   Firefox.
+#
+# DEPENDENCIES
+#
+#   google-chrome(1)
+#
+
+case $# in
+    0)  echo >&2 "usage: ${0##*/} <url> [<file>]"
+        exit 1 ;;
+    1)  set -- "$1" "$(echo "$1" | sed 's/[^0-9a-zA-Z_.-]\+/_/g;s/^_\+//;s/_\+$//').pdf" ;;
+esac
+
+exec google-chrome --headless --disable-gpu --print-to-pdf="$2" "$1"
