@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# NAME
+#
+#   editinvim - edit the contents of a GUI's text box using gVim
+#
+# SYNOPSIS
+#
+#   editinvim
+#
+# DESCRIPTION
+#
+#   This is a helper script to edit the contents of a GUI's text box
+#   using gVim.  It does this by first copying the contents to
+#   a temporary file, which is then opened using gVim.  The edited
+#   contents are then pasted into the text box.
+#
+#   To integrate editinvim with the i3 window manager, use:
+#
+#     bindsym $mod+Shift+v exec editinvim
+#     for_window [title="editinvim"] floating enable
+#
+# DEPENDENCIES
+#
+#   gvim(1), mktemp(1), xclip(1), and xdotool(1)
+#
+# SEE ALSO
+#
+#   vim-anywhere <https://github.com/cknadler/vim-anywhere>
+#
+
+tmp="$(mktemp -t editinvim.XXXXXX.txt)"
+trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+sleep 0.75s
+
+xdotool key --clearmodifiers ctrl+a ctrl+c
+
+# Try to be "intelligent" and guess an appropriate file type.
+title=$(xdotool getactivewindow getwindowname)
+case "$title" in
+    *Wikipedia*|*Wikimedia*) ft="set ft=mediawiki" ;;
+    *) ft="set ft=markdown" ;;
+esac
+
+xclip -selection clipboard -o >"$tmp"
+gvim +"$ft" -f "$tmp"
+xclip -selection clipboard -i <"$tmp"
+
+sleep 0.1s
+
+xdotool key --clearmodifiers ctrl+v
