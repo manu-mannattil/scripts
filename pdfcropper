@@ -2,15 +2,15 @@
 #
 # NAME
 #
-#   pdf-cropper - run krop on a page range
+#   pdfcropper - run krop on a page range
 #
 # SYNOPSIS
 #
-#   pdf-cropper <file>
+#   pdfcropper <file>
 #
 # DESCRIPTION
 #
-#   pdf-cropper extracts a range of pages from the supplied PDF using
+#   pdfcropper extracts a range of pages from the supplied PDF using
 #   pdfjam and gives it to krop -- a simple graphical tool to crop PDF
 #   pages.  Although krop has the functionality to krop a range of
 #   pages, it is slower on large PDFs, ergo this script.

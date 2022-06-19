@@ -2,20 +2,20 @@
 #
 # NAME
 #
-#   pdf-bw - convert PDFs to grayscale
+#   pdfbw - convert PDFs to grayscale
 #
 # SYNOPSIS
 #
-#   pdf-bw <file>...
+#   pdfbw <file>...
 #
 # DESCRIPTION
 #
-#   pdf-bw will convert each input PDF file to grayscale and write the
+#   pdfbw will convert each input PDF file to grayscale and write the
 #   output to `<file>_bw.pdf'.
 #
 
 [ "$*" ] || {
-    echo >&2 "pdf-bw ${0##*/} <file>..."
+    echo >&2 "usage: ${0##*/} <file>..."
     exit 1
 }
 

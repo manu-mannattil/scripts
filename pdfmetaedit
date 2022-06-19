@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   pdfmetaedit - edit metadata of PDF files
+#
+# SYNOPSIS
+#
+#   pdfmetaedit [-a] <file>
+#
+# OPTION
+#
+#       -a      use the filename as the PDF title
+#
+# DESCRIPTION
+#
+#   pdfmetaedit is a wrapper script around PDFtk that will let you edit the
+#   metadata (e.g., "subject", "title", etc.) of PDF files using $EDITOR.
+#
+# DEPENDENCIES
+#
+#   pdftk(1) and mktemp(1)
+#
+
+set -eu
+set -o pipefail
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir" &>/dev/null' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+auto="no"
+while getopts ":a" opt
+do
+    case "$opt" in
+        a)  auto="yes" ;;
+        \?) echo >&2 "${0##*/}: -$OPTARG is not a valid option\n"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+[[ "$*" ]] || {
+    echo >&2 "usage: ${0##*/} [-a] <file>"
+    exit 1
+}
+
+meta="${tmpdir}/meta.txt"
+
+if [[ "$auto" == "yes" ]]
+then
+cat >"$meta" <<META
+  InfoBegin
+  InfoKey: Title
+  InfoValue: $1
+META
+else
+    pdftk "$1" dump_data_utf8 | grep '^Info' | sed '/^InfoBegin/! { s/^/  /; }' >"$meta"
+
+    # Generate these default keys if they're not available.
+    for key in "Author" "Subject" "Title" "Keywords"
+    do
+        grep -q "InfoKey: ${key}" "$meta" || {
+            echo "InfoBegin"
+            echo "  InfoKey: ${key}"
+            echo "  InfoValue:"
+        } >>"$meta"
+    done
+
+    "${EDITOR:-vi}" "$meta"
+fi
+
+pdf="${tmpdir}/updated.pdf"
+pdftk "$1" update_info_utf8 <(sed 's/^ *Info/Info/' "$meta") output "$pdf"
+mv -f "$pdf" "$1"

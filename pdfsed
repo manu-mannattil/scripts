@@ -2,15 +2,15 @@
 #
 # NAME
 #
-#   pdf-sed - edit PDFs using sed
+#   pdfsed - edit PDFs using sed
 #
 # SYNOPSIS
 #    
-#   pdf-sed <sedexpr> <input> <output>
+#   pdfsed <sedexpr> <input> <output>
 #
 # DESCRIPTION
 #
-#   pdf-sed is a simple wrapper script around sed and PDFtk using which
+#   pdfsed is a simple wrapper script around sed and PDFtk using which
 #   you can edit PDFs.  It is useful for removing (text-only) watermarks
 #   from PDFs downloaded from certain journals.
 #

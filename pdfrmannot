@@ -2,15 +2,15 @@
 #
 # NAME
 #
-#   pdf-rm-annot - remove annotations from a PDF file
+#   pdfrmannot - remove annotations from a PDF file
 #
 # SYNOPSIS
 #
-#   pdf-rm-annot <file>...
+#   pdfrmannot <file>...
 #
 # DESCRIPTION
 #
-#   pdf-rm-annot is a simple script that uses PDFtk and sed to remove
+#   pdfrmannot is a simple script that uses PDFtk and sed to remove
 #   annotations from a PDF file.  A backup of the supplied files will be
 #   kept, e.g., `document.pdf' will be backed up to `document.pdf~'.
 #

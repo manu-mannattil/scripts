@@ -2,15 +2,15 @@
 #
 # NAME
 #
-#   pdf-meta-strip - strip metadata from PDF files.
+#   pdfmetastrip - strip metadata from PDF files.
 #
 # SYNOPSIS
 #
-#   pdf-meta-strip <file>...
+#   pdfmetastrip <file>...
 #
 # DESCRIPTION
 #
-#   pdf-meta-strip is a script for stripping metadata from PDF files.
+#   pdfmetastrip is a script for stripping metadata from PDF files.
 #   A backup of each input file will be made by appending `~' to the
 #   filename and the origial PDF will be replaced with the sanitized
 #   version.
