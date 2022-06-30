@@ -57,7 +57,8 @@ Highlights
         fortune | cowsay | huecat
         man vi | huecat -f | less
 
--   PDF manipulation scripts based on [PDFtk][pdftk]:
+-   PDF manipulation scripts based on [PDFtk][pdftk] and Ghostscript:
+    [pdfcompress](pdfcompress) compresses PDF files using Ghostscript;
     [pdfmetaedit](pdfmetaedit) is a script that will let you edit the
     metadata (e.g., "author" and "title" fields) of a PDF file using
     `$EDITOR`; [pdfmetastrip](pdfmetastrip) strips (most) metadata from

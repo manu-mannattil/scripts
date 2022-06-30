@@ -1,0 +1,101 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pdfcompress - compress PDFs using GhostScript
+#
+# SYNOPSIS
+#
+#   pdfcompress [-q <level>] <file>...
+#
+# OPTIONS
+#
+#   There is only one option, which sets the compression level, which is
+#   a number between 0-4.  The default level is 2.
+#
+#     level   description
+#     -----   -----------
+#       0     selects output intended to be useful across a wide variety
+#             of uses, possibly at the expense of a larger output file.
+#       1     selects output similar to Acrobat Distiller "Prepress
+#             Optimized" (up to version X) setting
+#       2     selects output similar to the Acrobat Distiller "Print
+#             Optimized" (up to version X) setting.
+#       3     selects medium-resolution output similar to the Acrobat
+#             Distiller (up to version X) "eBook" setting
+#       4     selects low-resolution output similar to the Acrobat
+#             Distiller (up to version X) "Screen Optimized" setting.
+#
+#   https://www.ghostscript.com/doc/current/VectorDevices.htm#PSPDF_IN
+#
+# DEPENDENCIES
+#
+#   gs(1)
+#
+
+set -e
+
+compare() {
+    a=$(stat -c%s "$1")
+    b=$(stat -c%s "$2")
+    printf >&2 "$1 -> $2 (%s%%)\n" $(echo "scale=2; ($a - $b)*100/$a" | bc)
+}
+
+level=2
+quality="printer"
+dpi=150
+while getopts ":q:" opt
+do
+    case "$opt" in
+        q)  level="$OPTARG"
+            case "$level" in
+                0) quality="default"
+                   dpi=203 ;;
+                1) quality="prepress"
+                   dpi=150 ;;
+                2) quality="printer"
+                   dpi=150 ;;
+                3) quality="ebook"
+                   dpi=150 ;;
+                4) quality="screen"
+                   dpi=96 ;;
+                *) echo >&2 "${0##*/}: invalid compression level $level"
+                   exit 1 ;;
+            esac ;;
+        :)  echo >&2 "${0##*/}: $OPTARG requires an argument"
+            exit 1 ;;
+        \?) echo >&2 "${0##*/}: $OPTARG is not a valid option"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+for pdf
+do
+    if gs 2>/dev/null                        \
+        -sDEVICE=pdfwrite                    \
+        -dBATCH                              \
+        -dNOPAUSE                            \
+        -dQUIET                              \
+        -dSAFER                              \
+        -dAutoRotatePages=/None              \
+        -dEmbedAllFonts=true                 \
+        -dSubsetFonts=true                   \
+        -dCompatibilityLevel=1.4             \
+        -dPDFA=2                             \
+        -dPDFACompatibilityPolicy=1          \
+        -dPDFSETTINGS=/"$quality"            \
+        -dColorImageDownsampleType=/Bicubic  \
+        -dColorImageResolution="$dpi"        \
+        -dGrayImageDownsampleType=/Bicubic   \
+        -dGrayImageResolution="$dpi"         \
+        -dMonoImageDownsampleType=/Subsample \
+        -dMonoImageResolution="$dpi"         \
+        -sOutputFile="${pdf%.*}_level-$level.pdf" "$pdf"
+    then
+        compare "$pdf" "${pdf%.*}_level-$level.pdf"
+    else
+        echo >&2 "${0##*/}: gs failed on $pdf"
+        exit 1
+    fi
+done
