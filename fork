@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# NAME
+#
+#   fork - fork a command and background properly
+#
+# SYNOPSIS
+#
+#   fork <cmd>...
+#
+# SEE ALSO
+#
+#   xdg-open(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <cmd>..."
+    exit 1
+}
+
+exec nohup "$@" </dev/null >/dev/null 2>&1 &
