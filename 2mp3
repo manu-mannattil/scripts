@@ -61,10 +61,6 @@
 set -eu
 set -o pipefail
 
-info() {
-    echo >&2 "${0##*/}: $*"
-}
-
 force="no"
 quality=( -q:a 0 )
 partial="2MP3_PARTIAL_CONVERTION"
@@ -83,9 +79,9 @@ do
             else
                 echo >&2 "${0##*/}: invalid LAME preset/bitrate"
             fi ;;
-        :)  info "$OPTARG requires an argument"
+        :)  echo >&2 "${0##*/}: $OPTARG requires an argument"
             exit 1 ;;
-        \?) info "$OPTARG is not a valid option"
+        \?) echo >&2 "${0##*/}: $OPTARG is not a valid option"
             exit 1 ;;
     esac
 done
