@@ -50,10 +50,8 @@ if not os.path.exists(CACHE_DIR):
 
 EDITOR = os.environ.get("EDITOR", "vi")
 
-
 class PrintError(Exception):
     pass
-
 
 def sanitize(string):
     """Sanitize string."""
@@ -68,7 +66,6 @@ def sanitize(string):
 
     return string
 
-
 def get_lyrics(keyword):
     """Extract lyrics from HTML using BeautifulSoup."""
     keyword = sanitize(keyword)
@@ -79,6 +76,9 @@ def get_lyrics(keyword):
     if re.search(r"Redirect Notice", req.text):
         new_url = re.search(REDIRECT_RE, req.text).group(1)
         req = requests.get(new_url, headers=HEADERS)
+        # requests seems to have trouble realizing that azlyrics.com
+        # uses UTF-8 encoding, so specify it explicitly.
+        req.encoding = "utf-8"
 
     # If lxml is available, prefer that.
     if "lxml" in sys.modules:
@@ -86,21 +86,22 @@ def get_lyrics(keyword):
     else:
         soup = BeautifulSoup(req.text, features="html.parser")
 
-    # Extract metadata.
-    meta = re.match("^(.*)\W+Lyrics\W+AZLyrics.com\W*$", soup.find("title").string)
-    if meta:
-        meta = meta.group(1)
-    else:
-        raise PrintError("Error retrieving lyrics for the given keyword.\n" + url)
+    div = soup.find("div", attrs={"class": "col-xs-12 col-lg-8 text-center"})
+    try:
+        artist = div.find("div", attrs={"class": "lyricsh"}).find("h2").text
+        artist = re.sub(r"(^\s*|\s*Lyrics\s*$)", "", artist)
+        title = div.find("b", recursive=False).text
+        title = re.sub(r'(^[\s"]*|[\s"]*$)', "", title)
+    except AttributeError:
+        raise PrintError("Error retrieving lyrics for the given keyword.\n" + req.url)
 
-    # Extract lyrics.
-    divs = soup.find_all("div", attrs={"class": None, "id": None})
-    if divs is None:
+    lyrics = div.find_all("div", attrs={"class": None, "id": None})
+    if lyrics is None:
         raise PrintError("Error extracting lyrics from HTML.\n" + req.url)
 
-    lyrics = "\n".join([d.get_text().strip() for d in divs])
-    return meta, lyrics, req.url
+    lyrics = "".join([l.get_text().strip() for l in lyrics])
 
+    return artist, title, lyrics, req.url
 
 def main():
     """Argument parsing."""
@@ -143,8 +144,8 @@ def main():
             text = fd.read()
     else:
         try:
-            lyrics = get_lyrics(keyword)
-            text = "{}\n---\n\n{}\n\n{}".format(*lyrics)
+            data = get_lyrics(keyword)
+            text = "{} -- {}\n---\n\n{}\n\n{}".format(*data)
             with open(cache_file, "w") as fd:
                 fd.write(text)
         except PrintError as e:
@@ -154,7 +155,6 @@ def main():
         print(text)
     else:
         pager(text)
-
 
 if __name__ == "__main__":
     sys.exit(main())
