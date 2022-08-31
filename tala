@@ -17,43 +17,39 @@
 #   TrueCrypt.  But note that unlike TrueCrypt, tala requires root
 #   privileges for all actions.
 #
-# OPTIONS
+# ACTIONS
 #
-#   -h    print help and exit
-#
-#   Actions
-#
-#     create container size
+#   create <container> <size>
 #       Create a LUKS container of given size. Size suffixes follow
 #       fallocate(1) conventions.
 #
-#     key container
+#   key <container>
 #       Change the password of the given LUKS container.
 #
-#     mount container directory
+#   mount <container> <directory>
 #       Mount LUKS container at directory.
 #
-#     unmount container
-#     unmount directory
+#   unmount <container>
+#   unmount <directory>
 #       Unmount LUKS container mounted at directory.
 #
-#     The actions c, k, m, and u are convenient aliases to the above
-#     actions.  umount is an additional alias to unmount.
+#   The actions c, k, m, and u are convenient aliases to the above
+#   actions.  umount is an additional alias to unmount.
 #
 # EXAMPLES
 #
 #   Create a 64 MB LUKS container named classified.luks
 #
-#     tala c classified.luks 64M
+#       tala c classified.luks 64M
 #
 #   Mount classified.luks at /tmp/classified
 #
-#     mkdir /tmp/classified
-#     tala m classified.luks /tmp/classified
+#       mkdir /tmp/classified
+#       tala m classified.luks /tmp/classified
 #
 #   Unmount classified.luks
 #
-#     tala u /tmp/classified
+#       tala u /tmp/classified
 #
 # SEE ALSO
 #
@@ -61,148 +57,130 @@
 #   tomb (https://www.dyne.org/software/tomb/)
 #
 
-set -eu
-
-name="tala"
-usage="usage: ${name} [-h] <action> <args>"
+set -eo pipefail
 
 cipher="aes-xts-plain64"    # Cipher used to encrypt the LUKS container.
 hashfn="sha1"               # Hash function used in LUKS key derivation.
 key_size="512"              # Encryption key size.
 
-check_luks_dev() {
-  if ! cryptsetup isLuks "$1" >/dev/null 2>&1; then
-    die "Invalid LUKS container '${1}'"
-  fi
-}
-
 die() {
-  echo >&2 "$1"
-  exit 1
+    [[ "$*" ]] || set -- "usage: tala <action> <args>..."
+    echo >&2 "$1"
+    exit 1
 }
 
-usage() {
-    if command -v less &>/dev/null
-    then
-        local pager=less
-        export LESS=
-    else
-        local pager=more
-    fi
-
-    grep '^#:' <"$0" | cut -c 4- | "$pager"
-    exit "${1:-0}"
+check_luks_dev() {
+    cryptsetup isLuks "$1" &>/dev/null || die "Invalid LUKS container '${1}'"
 }
 
 get_dev_mapper() {
-  echo "luks-$(cryptsetup luksUUID "$1")"
+    echo "luks-$(cryptsetup luksUUID "$1")"
 }
 
 tala_create() {
-  if [ "$#" -lt 2 ]; then
-    die "usage: ${name} create <container> <size>"
-  else
-    container="$1"
-    size="$2"
-  fi
+    if [[ "$2" ]]
+    then
+        container="$1"
+        size="$2"
+    else
+        die "usage: tala create <container> <size>"
+    fi
 
-  [ -e "$container" ] && die "${container} already exists"
+    [[ -e "$container" ]] && die "${container} already exists"
 
-  echo >&2 "Creating empty container at '${container}'"
-  fallocate --length "$size" "$container"
+    echo >&2 "Creating empty container at '${container}'"
+    fallocate --length "$size" "$container"
 
-  echo >&2 "Encrypting container '${container}'"
-  cryptsetup --cipher "$cipher"     \
-             --hash "$hashfn"       \
-             --key-size="$key_size" \
-             --verify-passphrase    \
-             luksFormat "$container"
+    echo >&2 "Encrypting container '${container}'"
+    cryptsetup --cipher "$cipher"     \
+               --hash "$hashfn"       \
+               --key-size="$key_size" \
+               --verify-passphrase    \
+               luksFormat "$container"
 
-  echo >&2 "Decrypting container and assigning to device mapper"
-  mapper=$(get_dev_mapper "$container")
-  cryptsetup luksOpen "$container" "$mapper"
+    echo >&2 "Decrypting container and assigning to device mapper"
+    mapper=$(get_dev_mapper "$container")
+    cryptsetup luksOpen "$container" "$mapper"
 
-  # Use $SUDO_UID to figure out who invoked sudo.  If this step isn't
-  # done, the user will have to change the owner of the container using
-  # chown -R once it's created.  By default, the owner is root.
-  echo >&2 "Creating new filesystem on the container"
-  mkfs.ext4 -E root_owner="${SUDO_UID:-$(id -u)}:${SUDO_GID:-$(id -g)}" \
-    "/dev/mapper/${mapper}"
+    # Use $SUDO_UID to figure out who invoked sudo.  If this step isn't
+    # done, the user will have to change the owner of the container using
+    # chown -R once it's created.  By default, the owner is root.
+    echo >&2 "Creating new filesystem on the container"
+    mkfs.ext4 -E root_owner="${SUDO_UID:-$(id -u)}:${SUDO_GID:-$(id -g)}" \
+        "/dev/mapper/${mapper}"
 
-  echo >&2 "Closing device mapper '${mapper}'"
-  cryptsetup luksClose "$mapper"
+    echo >&2 "Closing device mapper '${mapper}'"
+    cryptsetup luksClose "$mapper"
 }
 
 tala_key() {
-  if [ "$#" -lt 1 ]; then
-    die "usage: ${name} key <container>"
-  else
-    container="$1"
-    check_luks_dev "$container"
-  fi
+    if [[ "$*" ]]
+    then
+        container="$1"
+        check_luks_dev "$container"
+    else
+        die "usage: tala key <container>"
+    fi
 
-  if mount | grep -qF $(get_dev_mapper "$container"); then
-    echo >&2 "Unmounting ${container}"
-    tala_umount "$container"
-  fi
+    if mount | grep -qF $(get_dev_mapper "$container")
+    then
+        echo >&2 "Unmounting ${container}"
+        tala_umount "$container"
+    fi
 
-  echo >&2 "Changing passphrase of LUKS container"
-  cryptsetup --verify-passphrase luksChangeKey "$container"
+    echo >&2 "Changing passphrase of LUKS container"
+    cryptsetup --verify-passphrase luksChangeKey "$container"
 }
 
 tala_mount() {
-  if [ "$#" -lt 2 ]; then
-    die "usage: ${name} mount <container> <dir>"
-  else
-    container="$1"
-    check_luks_dev "$container"
+    if [[ "$2" ]]
+    then
+        container="$1"
+        check_luks_dev "$container"
 
-    dir="$2"
-    [ -d "$dir" ] || die "'${dir}' is not a valid directory"
-  fi
+        dir="$2"
+        [[ -d "$dir" ]] || die "'${dir}' is not a valid directory"
+    else
+        die "usage: tala mount <container> <directory>"
+    fi
 
-  echo >&2 "Decrypting container and assigning to device mapper"
-  mapper=$(get_dev_mapper "$container")
-  cryptsetup luksOpen "$container" "$mapper"
+    echo >&2 "Decrypting container and assigning to device mapper"
+    mapper=$(get_dev_mapper "$container")
+    cryptsetup luksOpen "$container" "$mapper"
 
-  echo >&2 "Mounting filesystem at '${dir}'"
-  mount --type "ext4" "/dev/mapper/${mapper}" "$dir"
+    echo >&2 "Mounting filesystem at '${dir}'"
+    mount --type "ext4" "/dev/mapper/${mapper}" "$dir"
 }
 
 tala_umount() {
-  if [ "$#" -lt 1 ]; then
-    die "usage: ${name} umount <container> | <dir>"
-  elif [ -d "$1" ]; then
-    mapper=$(findmnt --noheadings --output=source --target "$1")
-  elif [ -f "$1" ]; then
-    check_luks_dev "$1"
-    mapper="/dev/mapper/$(get_dev_mapper "$1")"
-  fi
+    [[ "$*" ]] || die "usage: tala unmount <container>"
 
-  echo >&2 "Unmounting device mapper '${mapper}'"
-  umount "$mapper"
+    if [[ -d "$1" ]]
+    then
+        mapper=$(findmnt --noheadings --output=source --target "$1")
+    elif [[ -f "$1" ]]
+    then
+        check_luks_dev "$1"
+        mapper="/dev/mapper/$(get_dev_mapper "$1")"
+    fi
 
-  echo >&2 "Closing device mapper '${mapper}'"
-  cryptsetup luksClose "${mapper##*/}"
+    echo >&2 "Unmounting device mapper '${mapper}'"
+    umount "$mapper"
 
-  echo >&2 "Unmounting successful"
+    echo >&2 "Closing device mapper '${mapper}'"
+    cryptsetup luksClose "${mapper##*/}"
+
+    echo >&2 "Unmounting successful"
 }
 
 # Always run as root.
-test $(id -u) -eq 0 || exec sudo -- "$0" "$@"
-
-[ "$#" -eq 0 ] && usage 1
+[[ $(id -u) -eq 0 ]] || exec sudo -- "$0" "$@"
 
 case "$1" in
-  c|create)         shift; tala_create "$@" ;;
-  k|key)            shift; tala_key    "$@" ;;
-  m|mount)          shift; tala_mount  "$@" ;;
-  u|umount|unmount) shift; tala_umount "$@" ;;
-  -h|--help)        usage 0                 ;;
-  *)
-    echo >&2 "${name}: unknown option: ${1}"
-    die "$usage"
-    ;;
+    c|create) shift; tala_create "$@"             ;;
+    k|key) shift; tala_key "$@"                   ;;
+    m|mount) shift; tala_mount "$@"               ;;
+    u|umount|unmount) shift; tala_umount "$@"     ;;
+    "") die                                       ;;
+    *) echo >&2 "tala: unknown option: ${1}"; die ;;
 esac
-
-# vim: ft=sh fdm=marker et sts=2 sw=2
