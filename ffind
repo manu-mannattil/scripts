@@ -18,7 +18,7 @@
 #
 #   The first argument in the argument list must be a valid egrep(1)
 #   pattern to match full file paths and the rest of the arguments can
-#   be paths or find(1) expressions.  
+#   be paths or find(1) expressions.
 #
 #   In addition to standard find(1) expressions the option "-ns" may
 #   also be passed to disable "smartness".  In that case, the pattern
@@ -54,7 +54,7 @@
 #   GNU version of find(1).
 #
 # BUGS
-#   
+#
 #   Yes.
 #
 
@@ -101,93 +101,93 @@ if [[ "$smart" == "yes" ]]
 then
     args+=(
         # Ignore standard VCS directories.
-        -type d \(
+        -not \(
             # Bazaar
             # http://bazaar.canonical.com/
-            -name .bzr           -o
+            -path '*/.bzr/*'           -o
 
             # Codeville
             # http://freecode.com/projects/codeville
-            -name .cdv           -o
+            -path '*/.cdv/*'           -o
 
             # Interface Builder (Xcode)
             # http://en.wikipedia.org/wiki/Interface_Builder
-            -name ~.dep          -o
-            -name ~.dot          -o
-            -name ~.nib          -o
-            -name ~.plst         -o
+            -path '*/~.dep/*'          -o
+            -path '*/~.dot/*'          -o
+            -path '*/~.nib/*'          -o
+            -path '*/~.plst/*'         -o
 
             # Git
             # http://git-scm.com/
-            -name .git           -o
+            -path '*/.git/*'           -o
 
             # Mercurial
             # http://mercurial.selenic.com/
-            -name .hg            -o
+            -path '*/.hg/*'            -o
 
             # quilt
             # http://directory.fsf.org/wiki/Quilt
-            -name .pc            -o
+            -path '*/.pc/*'            -o
 
             # Subversion
             # http://subversion.tigris.org/
-            -name .svn           -o
+            -path '*/.svn/*'           -o
 
             # Monotone
             # http://www.monotone.ca/
-            -name _MTN           -o
+            -path '*/_MTN/*'           -o
 
             # CVS
             # http://savannah.nongnu.org/projects/cvs
-            -name CVS            -o
+            -path '*/CVS/*'            -o
 
             # RCS
             # http://www.gnu.org/software/rcs/
-            -name RCS            -o
+            -path '*/RCS/*'            -o
 
             # SCCS
             # http://en.wikipedia.org/wiki/Source_Code_Control_System
-            -name SCCS           -o
+            -path '*/SCCS/*'           -o
 
             # darcs
             # http://darcs.net/
-            -name _darcs         -o
+            -path '*/_darcs/*'         -o
 
             # Vault/Fortress
-            -name _sgbak         -o
+            -path '*/_sgbak/*'         -o
 
             # autoconf
             # http://www.gnu.org/software/autoconf/
-            -name autom4te.cache -o
+            -path '*/autom4te.cache/*' -o
 
             # Perl module building
-            -name blib           -o
-            -name _build         -o
+            -path '*/blib/*'           -o
+            -path '*/_build/*'         -o
 
             # Perl Devel::Cover module's output directory
             # https://metacpan.org/release/Devel-Cover
-            -name cover_db       -o
+            -path '*/cover_db/*'       -o
 
             # Node modules created by npm
-            -name node_modules   -o
+            -path '*/node_modules/*'   -o
 
             # CMake cache
             # http://www.cmake.org/
-            -name CMakeFiles     -o
+            -path '*/CMakeFiles/*'     -o
 
             # Eclipse workspace folder
             # http://eclipse.org/
-            -name .metadata      -o
+            -path '*/.metadata/*'      -o
 
             # Cabal (Haskell) sandboxes
             # http://www.haskell.org/cabal/users-guide/installing-packages.html
-            -name .cabal-sandbox 
-        \) -prune -false
+            -path '*/.cabal-sandbox/*'
+        \)
     )
 
     # Smart regex: if the pattern contains at least one upper-case
     # letter, assume that the user wants a case-sensitive search.
-    [[ "$patt" =~ [A-Z] ]] && args+=(-o -regex) || args+=(-o -iregex)
+    [[ "$patt" =~ [A-Z] ]] && args+=(-regex) || args+=(-iregex)
 else
     args+=(-regex)
 fi
