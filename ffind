@@ -47,7 +47,7 @@
 #
 #   o   Find all empty directories that start with an uppercase letter
 #
-#         ffind '/[A-Z][^/]*$' -type d -empty
+#         ffind '^[A-Z]' -type d -empty
 #
 # DEPENDENCIES
 #
@@ -188,6 +188,9 @@ then
     # Smart regex: if the pattern contains at least one upper-case
     # letter, assume that the user wants a case-sensitive search.
     [[ "$patt" =~ [A-Z] ]] && args+=(-regex) || args+=(-iregex)
+
+    # Smart regex substitutions.
+    patt=$(sed 's|[\^]|/|' <<< "$patt")
 else
     args+=(-regex)
 fi
