@@ -182,6 +182,17 @@ args+=(
         # http://www.haskell.org/cabal/users-guide/installing-packages.html
         --exclude-dir=.cabal-sandbox
 
+        # Python caches
+        # https://docs.python.org/3/tutorial/modules.html
+        --exclude-dir=__pycache__
+        --exclude-dir=.pytest_cache
+
+        # Filesystem crap
+        --exclude-dir=__MACOSX
+        --exclude-dir=.Spotlight-V100
+        --exclude-dir=.Trash
+        --exclude-dir=.Trash-1000
+
         ### Files to ignore ###
 
         # Backup files
