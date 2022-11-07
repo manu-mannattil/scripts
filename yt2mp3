@@ -21,7 +21,7 @@
 
 exec youtube-dl                  \
     --audio-format mp3           \
-    --audio-quality 0            \
+    --audio-quality 2            \
     --extract-audio              \
     --format bestaudio           \
     --ignore-config              \

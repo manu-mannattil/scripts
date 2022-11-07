@@ -15,8 +15,8 @@
 #
 # DESCRIPTION
 #
-#   Each timestamp in the subtitle file is linearly transformed using the
-#   function f(t) = a*t + b.  This is useful for many things, e.g.,
+#   Each timestamp in the subtitle file is linearly transformed using
+#   the function f(t) = a*t + b.  This is useful for many things, e.g.,
 #   fixing the framerate of subtitles, syncing subtitles, etc.
 #
 # EXAMPLE

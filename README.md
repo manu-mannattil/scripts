@@ -78,23 +78,26 @@ Highlights
 
 -   [e](e) and [editinvim](editinvim) are helper scripts for gVim. e can
     be used to connect to an active gVim server or start a new one.
-    editinvim can be used to edit textboxes in any GUI application using
-    gVim.
+    editinvim can be used to edit textboxes in (most) GUI applications
+    using gVim.
 
 -   [tala](tala) is a wrapper script around cryptsetup and friends to
     make it easier to create and manage LUKS containers (aka devices).
     tala was written as an alternative to TrueCrypt.
+
+-   [x230t-rotate](x230t-rotate) is a display rotation script to be used
+    with a ThinkPad X230t tablet (and other Wacom tablets).
 
 License
 -------
 
 Public domain.  See the file UNLICENSE for more details.
 
-[bash]: https://www.gnu.org/software/bash/
+[bash]: https://www.gnu.org/software/bash
 [com]: http://www.iq0.com/duffgram/com.html
 [coreutils]: https://www.gnu.org/software/coreutils/coreutils.html
 [goop]: https://www.forbes.com/sites/brucelee/2018/01/06/gwyneth-paltrows-goop-promotes-a-135-coffee-enema-kit
 [huecat]: https://i.imgur.com/g5YxOKw.png
 [lolcat]: https://github.com/busyloop/lolcat
 [pdftk]: http://www.pdftk.com
-[posix]: http://pubs.opengroup.org/onlinepubs/9699919799/
+[posix]: http://pubs.opengroup.org/onlinepubs/9699919799
