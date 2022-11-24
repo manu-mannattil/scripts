@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   curl2aria2c - convert a cURL command into an aria2c command
+#
+# SYNOPSIS
+#
+#   curl2aria2c <cURL args>...
+#
+# DESCRIPTION
+#
+#   curl2aria2ac converts a cURL command into an equivalent aria2c
+#   command and executes it.  Currently, only the header `-H' option is
+#   supported as that is the only major option that Firefox's "Copy
+#   as cURL" feature produces.
+#
+# DEPENDENCIES
+#
+#   aria2c(1)
+#
+
+args=( "--continue" "--http-accept-gzip" )
+while [[ "$1" ]]
+do
+    case "$1" in
+        # Ignore "range" header.  aria2c will want to
+        # request custom ranges anyway.
+        -H) shift
+            [[ $1 =~ ^[rR]ange: ]] || args+=( "--header" "$1" ) ;;
+        # These options don't have aria2c equivalents.  They were
+        # procured from curl.js available at:
+        # https://hg.mozilla.org/mozilla-central/file/tip/devtools/client/shared/curl.js
+        --globoff|--data-*|-I|-X)
+            [[ "$1" =~ --data ]] && shift
+            echo >&2 "${0##*/}: option $1 ignored" ;;
+        *)  args+=( "$1" ) ;;
+    esac
+    shift
+done
+
+exec aria2c "${args[@]}"
