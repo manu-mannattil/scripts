@@ -2,16 +2,16 @@
 #
 # NAME
 #
-#   pass-print - convert a password store managed by pass into
-#                a printable PDF.
+#   passprint - convert a password store managed by pass into
+#               a printable PDF.
 #
 # SYNOPSIS
 #
-#   pass-print [<output>.pdf]
+#   passprint [<output>.pdf]
 #
 # DESCRIPTION
 #
-#   pass-print will convert a password store managed by pass [1] into
+#   passprint will convert a password store managed by pass [1] into
 #   a printable [2] PDF.  All passwords in your password store are
 #   expected to have a prefix string that will match a fixed regular
 #   expression.  This way, one can strip out the prefix string before
@@ -23,8 +23,8 @@
 #
 # CONFIGURATION
 #
-#   To use pass-print, first create a gpg2-encrypted configuration file
-#   '.pass-print.conf' inside the $PASSWORD_STORE_DIR (by default
+#   To use passprint, first create a gpg2-encrypted configuration file
+#   '.passprint.conf' inside the $PASSWORD_STORE_DIR (by default
 #   ~/.password-store).  This configuration file should be a shell
 #   script that can be 'evaled' in Bash, and _must_ contain the variable
 #   $PASSPRINT_PREFIX, which is an extended regular expression that will
@@ -54,7 +54,7 @@ set -o pipefail
 set -e
 
 : "${PASSWORD_STORE_DIR:=${HOME}/.password-store}"
-: "${PASSPRINT_CONF:=${PASSWORD_STORE_DIR}/.pass-print.conf}"
+: "${PASSPRINT_CONF:=${PASSWORD_STORE_DIR}/.passprint.conf}"
 
 if command -v gpg2 &>/dev/null
 then
@@ -116,7 +116,7 @@ EOF
             }
 
             function warn(string) {
-                printf("pass-print: %s\n", string) >"/dev/stderr"
+                printf("passprint: %s\n", string) >"/dev/stderr"
             }
 
             (NR == 1) {

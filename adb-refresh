@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# NAME
+#
+#   adb-refresh - refresh Android media storage using ADB
+#
+# SYNOPSIS
+#
+#   adb-refresh <dir>...
+#
+# DEPENDENCIES
+#
+#   adb(1)
+#
+
+set -eu
+
+[ "$*" ] || set -- "DCIM" "Movies" "Music" "Pictures"
+
+for dir
+do
+    # https://stackoverflow.com/q/17928576
+    adb shell am broadcast -a "android.intent.action.MEDIA_SCANNER_SCAN_FILE" -d "file:///sdcard/$dir"
+
+    # Sometimes /storage/emulated/0/... needs to be used instead of /sdcard/...
+    adb shell am broadcast -a "android.intent.action.MEDIA_SCANNER_SCAN_FILE" -d "file:///storage/emulated/0/$dir"
+done
