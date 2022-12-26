@@ -27,6 +27,8 @@
 #   adb(1), mktemp(1), and rsync(1)
 #
 
+set -eu
+
 [ "$*" ] || {
     echo >&2 "usage: ${0##*/} <file>..."
     exit 1

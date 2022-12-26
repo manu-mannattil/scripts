@@ -48,7 +48,7 @@ Highlights
         # Fetch lyrics of current song in the player, e.g., DeaDBeeF.
         lyrics $(deadbeef --nowplaying '%a %t' 2>/dev/null)
 
--   [brep](brep) and [ffind](find) are "intelligent" wrappers around
+-   [brep](brep) and [ffind](ffind) are "intelligent" wrappers around
     GNU's version of grep and find that takes care of 90% of their use
     cases for me.
 
