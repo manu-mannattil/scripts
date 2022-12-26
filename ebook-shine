@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# NAME
+#
+#   ebook-shine - polish ebooks by smartening punctuation, embedding
+#                 fonts, removing unused CSS, etc
+#
+# SYNOPSIS
+#
+#   ebook-shine [<file>...]
+#
+# DEPENDENCIES
+#
+#   ebook-polish(1) and parallel(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/}: ebook-shine <ebook>..."
+}
+
+exec parallel ebook-polish \
+    --embed-fonts          \
+    --remove-unused-css    \
+    --smarten-punctuation  \
+    --add-soft-hyphens     \
+    --subset-fonts         \
+    --upgrade-book         \
+    --verbose ::: "$@"

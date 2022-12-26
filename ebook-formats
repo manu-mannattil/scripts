@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# NAME
+#
+#   ebook-formats - convert ebooks to useful formats
+#
+# SYNOPSIS
+#
+#   ebook-formats [-d] <dir>
+#
+# DESCRIPTION
+#
+#   This script recursively searches for all EPUB and MOBI files in the
+#   given directory and converts EPUB to MOBI if the MOBI version of an
+#   EPUB file does not exist (and vice versa).  It also converts the
+#   EPUB version to a plain-text file for easy grepping.
+#
+# OPTIONS
+#
+#     -d, --dry     dry run (i.e., print commands)
+#
+# BUGS
+#
+#   Since the conversion commands are piped to sh(1), it will fail if
+#   the filenames contain certain characters, e.g., a single quote.
+#   Fixing it will introduce unnecessary complexity and it is better and
+#   easier to detox the filenames by first running goop(1).
+#
+# DEPENDENCIES
+#
+#   ebook-convert(1) and parallel(1)
+#
+
+parallel="/usr/bin/parallel --eta --keep-order"
+case "$1" in
+    --dry|-d)
+        parallel="/bin/cat"
+        shift ;;
+    *)
+        [ -d "$1" ] || {
+            echo >&2 "${0##*/}: '$1' is an invalid directory"
+            echo >&2 "usage: ${0##*/} [-d] <dir>"
+            exit 1
+        }
+esac
+
+echo >&2 "${0##*/}: converting epub <-> mobi"
+{
+    find "$1" -type f -name '*.epub' |
+        while IFS= read -r epub
+        do
+            mobi="${epub%.*}.mobi"
+            [ -f "$mobi" ] || echo ebook-convert "'$epub'" "'$mobi'"
+        done
+
+    find "$1" -type f -name '*.mobi' |
+        while IFS= read -r mobi
+        do
+            epub="${mobi%.*}.epub"
+            [ -f "$epub" ] || echo ebook-convert "'$mobi'" "'$epub'"
+        done
+} | $parallel
+
+# I do this after EPUB <-> MOBI to ensure that an EPUB version exists.
+echo >&2 "${0##*/}: converting epub -> text"
+{
+    find "$1" -type f -name '*.epub' |
+        while IFS= read -r epub; do
+            txt="${epub%.*}.txt"
+            [ -f "$txt" ] || echo ebook-convert "'$epub'" "'$txt'"
+        done
+} | $parallel

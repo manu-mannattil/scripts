@@ -48,6 +48,10 @@ Highlights
         # Fetch lyrics of current song in the player, e.g., DeaDBeeF.
         lyrics $(deadbeef --nowplaying '%a %t' 2>/dev/null)
 
+-   [brep](brep) and [ffind](find) are "intelligent" wrappers around
+    GNU's version of grep and find that takes care of 90% of their use
+    cases for me.
+
 -   [huecat](huecat) is an NIH [lolcat][lolcat] implementation in
     Python that will concatenate files (just like cat) and garishly
     print the contents on the stdout (assumed to be attached to
@@ -56,6 +60,9 @@ Highlights
 
         fortune | cowsay | huecat
         man vi | huecat -f | less
+
+-   [fullfeed](fullfeed) converts partial RSS feeds (i.e., feeds that
+    force you to click and link to read the full post) into full feeds.
 
 -   PDF manipulation scripts based on [PDFtk][pdftk] and Ghostscript:
     [pdfcompress](pdfcompress) compresses PDF files using Ghostscript;
@@ -85,8 +92,20 @@ Highlights
     make it easier to create and manage LUKS containers (aka devices).
     tala was written as an alternative to TrueCrypt.
 
+-   [pass][pass] helper scripts: [passprint](passprint) converts
+    a password store into a PDF so that you can print your passwords.
+    [passmenu](passmenu) helps you pick passwords using rofi or dmenu.
+
+-   [mutt-open](mutt-open) is a file opener that integrates xdg-open
+    with mutt.
+
 -   [x230t-rotate](x230t-rotate) is a display rotation script to be used
     with a ThinkPad X230t tablet (and other Wacom tablets).
+
+-   Calibre-based ebook utilities: [ebook-formats](ebook-formats)
+    interconverts a directory of EPUB and MOBI ebooks parallely.
+    [ebook-organize](ebook-organize) reorganizes a directory of ebooks
+    into the form _.../author/title/title.ext_.
 
 License
 -------
@@ -99,5 +118,7 @@ Public domain.  See the file UNLICENSE for more details.
 [goop]: https://www.forbes.com/sites/brucelee/2018/01/06/gwyneth-paltrows-goop-promotes-a-135-coffee-enema-kit
 [huecat]: https://i.imgur.com/g5YxOKw.png
 [lolcat]: https://github.com/busyloop/lolcat
+[pass]: https://www.passwordstore.org
+[password]: https://www.schneier.com/blog/archives/2005/06/write_down_your.html
 [pdftk]: http://www.pdftk.com
 [posix]: http://pubs.opengroup.org/onlinepubs/9699919799

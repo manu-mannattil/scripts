@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# NAME
+#
+#   ebook-organize - rename and organize all ebooks in a directory
+#
+# SYNOPSIS
+#
+#   ebook-organize <dir>...
+#
+# DESCRIPTION
+#
+#   ebook-organize renames and classifies all ebooks in a directory.
+#   Each book will be put in a path of the form
+#
+#     <directory>/<author>/<title>/<title>.<extension>
+#
+#   Directories will be created if they don't exist.
+#
+# DEPENDENCIES
+#
+#   ebook-meta(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/}: ebook-organize <dir>..."
+}
+
+for dir
+do
+    find "$dir" -type f -name '*.azw'    \
+                     -o -name '*.azw1'   \
+                     -o -name '*.azw3'   \
+                     -o -name '*.azw4'   \
+                     -o -name '*.epub'   \
+                     -o -name '*.fb2'    \
+                     -o -name '*.kf8'    \
+                     -o -name '*.lit'    \
+                     -o -name '*.mobi'   \
+                     -o -name '*.pdb'    \
+                     -o -name '*.prc'    |
+    while IFS= read -r ebook
+    do
+        metadata=$(ebook-meta "$ebook" 2>/dev/null)
+
+        # Canonicalize author name and title.
+        author=$(printf "%s" "$metadata" |
+                 grep '^Author(s) *:'    |
+                 sed 's/^Author(s) *://
+                      s/ [[&].*//
+                      s/\(.*\), \(.*\)/\2 \1/
+                      s/[[:space:]]\{1,\}/ /g
+                      s/^[[:space:]]*//
+                      s/[[:space:]]*$//')
+        title=$(printf "%s" "$metadata"  |
+                grep '^Title *:'         |
+                sed 's/^Title *://
+                     s/: .*$//
+                     s/[[:space:]]\{1,\}/ /g
+                     s/^[[:space:]]*//
+                     s/[[:space:]]*$//')
+
+        if [ -z "$title" ] || [ -z "$author" ]
+        then
+            echo >&2 "${0##*/}: error extracting metadata from $ebook"
+            continue
+        fi
+
+        mkdir -v -p -- "${dir}/${author}/${title}"
+        mv -v -- "$ebook" "${dir}/${author}/${title}/${title}.${ebook##*.}"
+    done
+done
