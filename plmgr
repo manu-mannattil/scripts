@@ -61,17 +61,17 @@ then
     # Canonicalize artist name and form a safe lowercase filename.
     artist=$(deadbeef --nowplaying %a 2>/dev/null         |
              iconv -c -f 'UTF-8' -t 'ASCII//TRANSLIT'     |
-             sed -e 's/ [fF][eE][aA][tT][ .:-]\{1,\}.*$//
+             sed -e "s/ [fF][eE][aA][tT][ .:-]\{1,\}.*\$//
                      s/([^)]*)//g
                      s/{[^}]*}//g
                      s/\[[^]]*\]//g
+                     s/['\"]*//g
 
                      s/^[^[:alnum:]]\{1,\}//
-                     s/[^[:alnum:]]\{1,\}$//
+                     s/[^[:alnum:]]\{1,\}\$//
                      s/[^[:alnum:]._-]\{1,\}/_/g
                      y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/
-                     s/^the_//')
-                     echo $artist
+                     s/^the_//")
 
     if test "$artist"
     then
