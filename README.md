@@ -73,7 +73,7 @@ Highlights
     files using sed.
 
 -   [plmgr](plmgr) is a media player agnostic M3U playlist manager.  Its
-    only purpose is to add/delete the currently playing track from
+    only purpose is to add/delete the currently playing track to/from
     a playlist file.
 
 -   SubRip (SRT) subtitle manipulation scripts: [srtextract](srtextract)
@@ -93,8 +93,9 @@ Highlights
     tala was written as an alternative to TrueCrypt.
 
 -   [pass][pass] helper scripts: [passprint](passprint) converts
-    a password store into a PDF so that you can print your passwords.
-    [passmenu](passmenu) helps you pick passwords using rofi or dmenu.
+    a password store into a PDF so that you can [print your
+    passwords][password].  [passmenu](passmenu) helps you pick passwords
+    using rofi or dmenu.
 
 -   [mutt-open](mutt-open) is a file opener that integrates xdg-open
     with mutt.
@@ -103,7 +104,7 @@ Highlights
     with a ThinkPad X230t tablet (and other Wacom tablets).
 
 -   Calibre-based ebook utilities: [ebook-formats](ebook-formats)
-    interconverts a directory of EPUB and MOBI ebooks parallely.
+    interconverts a directory of EPUB and MOBI ebooks in parallel.
     [ebook-organize](ebook-organize) reorganizes a directory of ebooks
     into the form _.../author/title/title.ext_.
 

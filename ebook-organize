@@ -24,6 +24,7 @@
 
 [ "$*" ] || {
     echo >&2 "usage: ${0##*/}: ebook-organize <dir>..."
+    exit 1
 }
 
 for dir

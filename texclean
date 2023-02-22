@@ -52,6 +52,8 @@ awk '{
     print $0 ".xdv"
     print $0 ".xml"
     print $0 "Notes.bib"
+    print "texput.fls"
+    print "texput.log"
 
     # Remove temporary files produced by latexrun.
     # https://github.com/aclements/latexrun
