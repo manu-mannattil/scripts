@@ -65,12 +65,13 @@ then
                      s/([^)]*)//g
                      s/{[^}]*}//g
                      s/\[[^]]*\]//g
-                     s/[\/].*$//
 
                      s/^[^[:alnum:]]\{1,\}//
                      s/[^[:alnum:]]\{1,\}$//
                      s/[^[:alnum:]._-]\{1,\}/_/g
-                     y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/')
+                     y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/
+                     s/^the_//')
+                     echo $artist
 
     if test "$artist"
     then
