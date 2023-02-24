@@ -18,19 +18,24 @@
     exit 1
 }
 
-args=("--without-gui" "--export-area-drawing" "--file=${1}")
+args=( "--export-area-drawing" )
 
 # Choose converter according to extension.
 case "${2##*.}" in
-    emf) args+=("--export-emf=${2}") ;;
-    eps) args+=("--export-eps=${2}") ;;
-    pdf) args+=("--export-pdf=${2}") ;;
-    png) args+=("--export-png=${2}") ;;
-    ps)  args+=("--export-ps=${2}") ;;
-    svg) args+=("--export-plain-svg=${2}") ;;
-    wmf) args+=("--export-wmf=${2}") ;;
-    *)   echo >&2 "${0##*/}: unknown output extension '.${2##*.}'"
-         exit 1 ;;
+    svg|png|ps|eps|emf|wmf|xaml)
+        args+=( "--export-type=${2##*.}" ) ;;
+    pdf)
+        args+=( "--export-type=pdf" "--export-pdf-version=1.4" ) ;;
+    *)
+        echo >&2 "${0##*/}: unknown output extension '.${2##*.}'"
+        exit 1 ;;
 esac
+args+=( "--export-filename=$2" "$1" )
 
-inkscape "${args[@]}" && echo >&2 "${1} -> ${2}"
+if inkscape "${args[@]}" &>/dev/null
+then
+    echo >&2 "${1} -> ${2}"
+else
+    echo >&2 "inkscape failed with arguments ${args[@]}"
+    exit 1
+fi

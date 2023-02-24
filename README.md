@@ -97,6 +97,9 @@ Highlights
     passwords][password].  [passmenu](passmenu) helps you pick passwords
     using rofi or dmenu.
 
+-   [inkconv](inkconv) is a handy script that uses Inkscape to
+    interconvert EMF, EPS, PDF, PNG, PS, SVG, WMF, and XAML files.
+
 -   [mutt-open](mutt-open) is a file opener that integrates xdg-open
     with mutt.
 
