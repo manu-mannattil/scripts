@@ -28,6 +28,7 @@ do
         # request custom ranges anyway.
         -H) shift
             [[ $1 =~ ^[rR]ange: ]] || args+=( "--header" "$1" ) ;;
+        --output) args+=( "--out" ) ;;
         # These options don't have aria2c equivalents.  They were
         # procured from curl.js available at:
         # https://hg.mozilla.org/mozilla-central/file/tip/devtools/client/shared/curl.js
