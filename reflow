@@ -1,0 +1,54 @@
+#!/usr/bin/awk -f
+#
+# NAME
+#
+#   reflow - reformat text to one paragraph per line
+#
+# SYNOPSIS
+#
+#   reflow [<file>...]
+#
+# DESCRIPTION
+#
+#   reflow scans the supplied (text) files and reformats them such that
+#   each paragraph (assumed initially to be separated by more than one
+#   newlines) is put on a single line.
+#
+# SEE ALSO
+#
+#   fmt(1)
+#
+
+BEGIN {
+  inpara = 0;
+}
+
+{
+  if ($0 ~ /^[ \t]*$/) {
+    # Add an extra break if we're just coming out of
+    # a paragraph.
+    if (inpara)
+      printf("\n")
+
+    inpara = 0
+    printf("\n")
+  }
+  else {
+    # Squeeze whitespace.
+    sub(/^[ \t]+/, "", $0)
+    sub(/[ \t]+$/, "", $0)
+    sub(/[ \t]+/, " ", $0)
+
+    if (inpara)
+      printf(" %s", $0)
+    else
+      printf("%s", $0)
+
+    inpara = 1
+  }
+}
+
+END {
+  if (inpara)
+    printf("\n")
+}
