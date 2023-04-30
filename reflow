@@ -20,7 +20,7 @@
 #
 
 BEGIN {
-  inpara = 0;
+  inpara = 0
 }
 
 {
