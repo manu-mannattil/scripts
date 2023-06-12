@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# NAME
+#
+#   replaceln - replace symlinks with copies of targets
+#
+# SYNOPSIS
+#
+#   replaceln <link>...
+#
+# DEPENDENCIES
+#
+#   readlink(1)
+#
+
+[ "$*" ] || {
+    echo >&2 "usage: ${0##*/} <link>"
+    exit 1
+}
+
+for link
+do
+    [ -h "$link" ] || continue
+
+    target=$(readlink -ne -- "$link")
+    if [ "$target" ]
+    then
+        rm "$link"
+        cp -vf "$target" "$link"
+    else
+        echo >&2 "${0##*/}: '$link' points to nonexistant target"
+        continue
+    fi
+done
