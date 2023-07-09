@@ -120,7 +120,7 @@ Public domain.  See the file UNLICENSE for more details.
 [com]: http://www.iq0.com/duffgram/com.html
 [coreutils]: https://www.gnu.org/software/coreutils/coreutils.html
 [goop]: https://www.forbes.com/sites/brucelee/2018/01/06/gwyneth-paltrows-goop-promotes-a-135-coffee-enema-kit
-[huecat]: https://i.imgur.com/g5YxOKw.png
+[huecat]: https://raw.githubusercontent.com/manu-mannattil/assets/master/scripts/huecat.png
 [lolcat]: https://github.com/busyloop/lolcat
 [pass]: https://www.passwordstore.org
 [password]: https://www.schneier.com/blog/archives/2005/06/write_down_your.html

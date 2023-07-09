@@ -12,13 +12,12 @@
 #   huecat --help
 #
 # huecat was inspired by the lolcat [1] Ruby gem but uses a much more
-# simpler algorithm.  huecat is so rainbow rhythms! [2]
+# simpler algorithm.
 #
 #   $ fortune | cowsay | huecat
 #   $ fortune | cowsay | huecat -r -32
 #
 # [1]: https://github.com/busyloop/lolcat
-# [2]: https://i.imgur.com/g5YxOKw.png
 #
 
 import argparse
@@ -26,8 +25,8 @@ import random
 import sys
 from colorsys import hsv_to_rgb
 
-
 class HueCat:
+
     def __init__(self, row_period, col_period, seed, force):
         self.row_period = row_period
         self.col_period = col_period
@@ -72,9 +71,7 @@ class HueCat:
         if self.colored:
             for y, line in enumerate(fd):
                 for x, char in enumerate(line):
-                    self.output.write(
-                        self.color(char, x + self.seed, y + self.rows + self.seed)
-                    )
+                    self.output.write(self.color(char, x + self.seed, y + self.rows + self.seed))
 
             self.rows += y
 
@@ -90,7 +87,6 @@ class HueCat:
                     break
 
         fd.close()
-
 
 def main():
     """CLI argument parsing."""
@@ -147,7 +143,6 @@ def main():
 
     for fd in args.files:
         cat.cat(fd)
-
 
 if __name__ == "__main__":
     try:

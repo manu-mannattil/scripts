@@ -30,6 +30,8 @@ set -u
 : ${PLMGR_PLAYLIST_DIR:="${HOME}/music/playlists"}
 : ${PLMGR_PLAYLIST_DEFAULT:="miscellaneous.m3u"}
 
+mkdir -p "$PLMGR_PLAYLIST_DIR"
+
 die() {
     printf >&2 "plmgr: %s\n" "$*"
     exit 1

@@ -80,7 +80,6 @@ def rename(root, name, lower_case=False, dry=False):
         if not dry:
             os.replace(src, dst)
 
-
 def detox(files, recurse=False, lower_case=False, dry=False):
     """Detox a list of files."""
     for name in files:
@@ -96,7 +95,6 @@ def detox(files, recurse=False, lower_case=False, dry=False):
             print(e, file=sys.stderr)
             return 1
 
-
 def arg_parser_valid(name):
     """Check if the file is valid and can be accessed."""
     if not os.path.isfile(name) and not os.path.isdir(name):
@@ -105,7 +103,6 @@ def arg_parser_valid(name):
         raise argparse.ArgumentTypeError("‘{}’ is not writable".format(name))
     else:
         return os.path.normpath(name)
-
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(
@@ -133,9 +130,7 @@ if __name__ == "__main__":
         default=False,
         help="perform a trial run",
     )
-    arg_parser.add_argument(
-        "files", type=arg_parser_valid, nargs="+", help="input files"
-    )
+    arg_parser.add_argument("files", type=arg_parser_valid, nargs="+", help="input files")
 
     args = arg_parser.parse_args()
     sys.exit(detox(args.files, args.recurse, args.lower_case, args.dry_run))
