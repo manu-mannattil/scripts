@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   appimage-install - install AppImages locally
+#
+# SYNOPSIS
+#
+#   appimage-install [-n <name>] [-b <binary>] [-a <appdir>] <appimage>
+#
+# DESCRIPTION
+#
+#   Although AppImages are very convenient, it is even better
+#   if they can be installed as usual applications.  This script is
+#   a helper script that does exactly that.  It extracts the AppImage to
+#   a sensible directory and creates an executable and a .desktop file
+#   that can be used to run the AppImage.
+#
+# OPTIONS
+#
+#   -n <name>       name of the AppImage (used in the "Name" field in
+#                   the .desktop file to be created)
+#   -b <binary>     path to the binary, e.g., /usr/local/bin/name
+#   -a <appdir>     squashfs-root is extracted to this directory
+#
+# EXAMPLES
+#
+#   o   Install from a local AppImage
+#       appimage-install -n Firefox -b firefox -a /opt/Mozilla/Firefox
+#
+#   o   Install from a URL
+#       appimage-install https://www.slsknet.org/SoulseekQt/Linux/SoulseekQt-2018-1-30-64bit-appimage.tgz
+#
+# DEPENDENCIES
+#
+#   readlink, GNU coreutils
+#
+# SEE ALSO
+#
+#   Zap, an AppImage package manager that is more feature rich
+#   <https://github.com/srevinsaju/zap>
+#
+
+set -e
+set -o pipefail
+
+while getopts ":hn:b:a:" opt
+do
+    case "$opt" in
+        h)  echo >&2 "usage: ${0##*/} [-n name] [-b binary] [-a appdir] <appimage>"
+            exit ;;
+        n)  name="$OPTARG" ;;
+        b)  bin="$OPTARG" ;;
+        a)  appdir="$OPTARG" ;;
+        :)  echo >&2 "${0##*/}: -$OPTARG requires an argument"
+            exit 1 ;;
+        \?) echo >&2 "${0##*/}: -$OPTARG is not a valid option"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+# --- Procure AppImage ---
+
+if [[ "$1" =~ (^http|^www\.) ]]
+then
+    cd "$tmpdir"
+    wget --no-config --progress=bar "$1"
+
+    # Extract archives if any.
+    tar=$(find -type f -name '*.tgz' -o -name '*.gz' -o -name '*.tar' | head -n 1)
+    zip=$(find -type f -name '*.zip' | head -n 1)
+    if [[ "$tar" ]]
+    then
+        # We need GNU tar for this.
+        if tar atvf "$tar" &>/dev/null
+        then
+            tar axvf "$tar"
+        fi
+    elif [[ "$zip" ]]
+    then
+        unzip "$zip"
+    fi
+
+    # Find the AppImage and set it as the only argument.
+    set -- $(find -type f -name '*.AppImage' | head -n 1)
+elif [[ -f "$1" ]]
+then
+    ln -s "$(readlink -e -n -- "$1")" "$tmpdir"
+    cd "$tmpdir"
+else
+    echo >&2 "${0##*/}: '$1' is not a valid file or a URL"
+    exit 1
+fi
+
+# --- Metadata ---
+
+stem="${1##*/}"
+
+if [[ -z "$name" ]]
+then
+    name="${stem%.AppImage}"
+    read -ep "Name [$name]: " -i "$name" name
+fi
+
+if [[ -z "$bin" ]]
+then
+    bin="/usr/local/bin/$name"
+    read -ep "Binary [$bin]: " -i "$bin" bin
+fi
+
+if [[ -z "$appdir" ]]
+then
+    appdir="/opt/$name"
+    read -ep "Directory [$appdir]: " -i "$appdir" appdir
+fi
+
+# --- AppRun to /usr/local/bin ---
+
+chmod +x "$stem"
+"./$stem" --appimage-extract
+rm -rf "$appdir"
+
+# We need to explicitly give read/executable permissions to
+# all users, as, by default, the files are restricted to just
+# root.
+chmod -R a+rX squashfs-root
+cp -r squashfs-root "$appdir"
+
+cat >"$bin" <<EOF
+#!/bin/sh
+cd "$appdir"
+exec "./AppRun" "\$@"
+EOF
+chmod a+rx "$bin"
+
+echo >&2 "${0##*/}: AppRun script at '$bin'"
+
+# --- Icons ---
+
+icon=$(find "$appdir"        \
+            -maxdepth 1      \
+            -type f          \
+            -name '*.svg' -o \
+            -name '*.png' -o \
+            -name '*.gif' | head -n 1)
+
+if [[ "$icon" ]]
+then
+    mkdir -p "/usr/local/share/icons"
+    cp -f "$icon" "/usr/local/share/icons/$name.${icon##*.}"
+    echo >&2 "${0##*/}: icon at '$icon'"
+else
+    echo >&2 "${0##*/}: no icon file found"
+fi
+
+# --- .desktop file ---
+
+mkdir -p "/usr/local/share/applications"
+desktop="/usr/local/share/applications/$name.desktop"
+cat >"$desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$name
+Icon=$name
+Comment=$name
+Exec=$bin %f
+TryExec=$bin
+EOF
+
+echo >&2 "${0##*/}: .desktop file at '$desktop'"
