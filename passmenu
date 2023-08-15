@@ -33,10 +33,14 @@ pick() {
     fi
 }
 
+# If no options are supplied, just use -c (copy to
+# clipboard) as the option.
+[[ "$*" ]] || set -- -c
+
 prefix=${PASSWORD_STORE_DIR-~/.password-store}
 files=( "$prefix"/**/*.gpg )
 files=( "${files[@]#"$prefix"/}" )
 files=( "${files[@]%.gpg}" )
 
 entry=$(printf '%s\n' "${files[@]}" | pick "$@")
-exec pass -c "$entry"
+exec pass "$@" "$entry"
