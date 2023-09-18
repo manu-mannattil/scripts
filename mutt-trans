@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# NAME
+#
+#   mutt-trans - helper script to pipe message thru trans(1)
+#
+# SYNOPSIS
+#
+#   mutt-trans < .../path/to/message
+#
+# DEPENDENCIES
+#
+#   less(1), md5sum(1), mktemp(1), and trans(1)
+#
+
+: ${PAGER:=less}
+
+tmpfile="$(mktemp -u)"
+trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+cache="$HOME/.cache/mutt/trans"
+mkdir -p "$cache"
+
+cat >"$tmpfile"
+
+out="$cache/$(md5sum "$tmpfile" | cut -d ' ' -f 1)"
+
+[ -f "$out" ] ||  {
+    echo >&2 "${0##*/}: translating..."
+
+    awk '
+        BEGIN { visible = 0 }
+        /^(Subject|Date|From|To|Cc|Bcc|Sender):/ { print }
+        /^\s*$/ { visible = 1 }
+        {
+            if (visible)
+                print
+        }
+    ' "$tmpfile"          \
+        | trans           \
+          -brief          \
+          -no-autocorrect \
+          -no-theme       \
+          -no-browser     \
+          -no-warn        \
+          -output "$out"
+}
+
+exec "$PAGER" "$out"
