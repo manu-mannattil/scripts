@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   texprune - clean up and make a copy of a LaTeX source directory
+#
+# SYNOPSIS
+#
+#   texprune [-fsz] <src_dir> <dst_dir>
+#
+# OPTIONS
+#
+#       -f      force overwrite destination files
+#       -s      scrub .tex files by removing comments
+#       -z      make a .zip archive as well
+#
+# DESCRIPTION
+#
+#   While working on a LaTeX document, it is not uncommon to have
+#   several nonessential files in the working tree, e.g., notes, image
+#   files that aren't included, etc.  If we want to email the working
+#   tree to a colleague or upload it to arXiv, including these files
+#   would be superflous.  texprune is an attempt to solve this
+#   problem.
+#
+#   texprune takes two directories -- the source directory <src_dir>
+#   and the destination directory <dst_dir> -- as arguments.
+#   texprune assumes that *all* the required files for compilation,
+#   except the figures, are in the source directory at the first level,
+#   i.e., <src_dir>/paper.tex and not <src_dir>/level/paper.tex.
+#   Figure files can be scattered within the source directory, and the
+#   directory structure would also be copied.  texprune then copies all
+#   the essential files from <src_dir> into <dst_dir>.
+#
+#   Obviously, texprune does not cover all use cases, and is heavily
+#   tailored to suit my workflow.  For this reason, it should not be
+#   used without extensive testing.
+#
+# DEPENDENCIES
+#
+#   GNU coreutils, pdflatex(1), rsync(1), and zip(1)
+#
+# SEE ALSO
+#
+#   arXiv LaTeX Cleaner
+#       <https://github.com/google-research/arxiv-latex-cleaner/>
+#
+
+die() {
+    echo >&2 "$@"
+    exit 1
+}
+
+# First round of option processing.
+scrub="no"
+force="no"
+archive="no"
+while getopts ":fsz" opt
+do
+    case "$opt" in
+        s)  scrub="yes"                                    ;;
+        f)  force="yes"                                    ;;
+        z)  archive="yes"                                  ;;
+        :)  die "${0##*/}: -$OPTARG requires an argument"  ;;
+        \?) die "${0##*/}: -$OPTARG is not a valid option" ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+pushd() {
+    command pushd "$@" >/dev/null
+}
+
+popd() {
+    command popd "$@" >/dev/null
+}
+
+# Get real path of <file> after descending into <dir>.
+# Synopsis: get_path <dir> <file>
+get_path() {
+    pushd "$1"
+    readlink -e -- "$2"
+    popd
+}
+
+# Scrub .tex files by removing comments.
+# Synopsis: scrub_tex <file>
+scrub_tex() {
+    sed -i -e '
+        # What are the chances that your .tex file contains the word
+        # __TEXSTRIP_PERCENT?
+        s/\\%/__TEXSTRIP_PERCENT/g
+        /^[ \t]*%/d
+        s/%.*//
+        s/__TEXSTRIP_PERCENT/\\%/g
+    ' "$@" | tr -s '\n'
+}
+
+# Get main .tex file from a source directory.
+# Synopsis: get_main_tex <dir>
+get_main_tex() {
+    while IFS= read -r name
+    do
+        grep -q '\\documentclass' "$name" && {
+            echo "$name"
+            return
+        }
+done < <(find "$1" -maxdepth 1 -type f -name '*.tex')
+    die "${0##*/}: no main .tex file found"
+}
+
+# Get included figures.
+# Synopsis: get_figures() <dir>
+get_figures() {
+    pushd "$1"
+    while IFS= read -r log
+    do
+        # Ignore log files not associated with a .tex file.
+        [ -f "${log%.*}.tex" ] || continue
+        # Regex may need to be tweaked.
+        # This seems to work right now.
+        sed -n 's|^File: \(.*\) Graphic file.*|\1|p' "$log"
+    done < <(find . -maxdepth 1 -type f -name '*.log')
+    popd
+}
+
+# Copy figures from <src_dir> to <dst_dir>
+# Synopsis: cp_figures <src_dir> <dst_dir>
+cp_figures() {
+    while IFS= read -r name
+    do
+        src=$(get_path "$1" "$name")
+        outdir="$2/$(dirname "$name")"
+        mkdir -p "$outdir"
+        cp "$src" "$outdir/$(basename "$name")"
+    done < <(get_figures "$1")
+}
+
+# Main function.
+# Synopsis: cp_tree <src_dir> <dst_dir>
+cp_tree() {
+    # Compile main LaTeX to ensure the presence of log files.
+    pushd "$1"
+    main=$(get_main_tex .)
+    echo >&2 "${0##*/}: compiling main .tex file '$main'"
+    pdflatex -interaction=nonstopmode "$main" &>/dev/null
+    popd
+
+    # - Descent to a maximum depth of 1 --exclude='/*/'
+    # - Trailing slash after source is important to copy
+    #   just the contents.
+    # - The order of --include/--exclude is important.
+    rsync   --archive              \
+            --copy-links           \
+            --prune-empty-dirs     \
+            --exclude='/*/'        \
+            --exclude='*Notes.bib' \
+            --include='*.bbx'      \
+            --include='*.bib'      \
+            --include='*.bst'      \
+            --include='*.cbx'      \
+            --include='*.cls'      \
+            --include='*.def'      \
+            --include='*.dtx'      \
+            --include='*.fd'       \
+            --include='*.ins'      \
+            --include='*.sty'      \
+            --include='*.tex'      \
+            --include='*/'         \
+            --exclude='*'          \
+            -- "$1/" "$2/"
+
+    if [[ "$scrub" = "yes" ]]
+    then
+        pushd "$2"
+        while IFS= read -r name
+        do
+            scrub_tex "$name"
+        done < <(find -type f -name '*.tex')
+        popd
+    fi
+
+    cp_figures "$1" "$2"
+}
+
+if [[ $# -lt 2 ]]
+then
+    die "usage: ${0##*/} [-fsz] <src_dir> <dst_dir>"
+else
+    [[ -d "$1" ]] || die "${0##*/}: source '$1' is not a valid directory"
+
+    if [[ -d "$2" ]]
+    then
+        if [[ "$force" = "no" ]]
+        then
+            die "${0##*/}: target '$2' exists; refusing to overwrite"
+        else
+            rm -rf "$2"
+        fi
+    fi
+
+    cp_tree "$1" "$2"
+    echo >&2 "${0##*/}: '$1' -> '$2'"
+
+    if [[ "$archive" = "yes" ]]
+    then
+        out="${2%/}.zip"
+        [[ -f "$out" ]] && rm -f "$out"
+        zip -q "$out" -r "$2"
+        echo >&2 "${0##*/}: '$2' -> '$out'"
+    fi
+fi
