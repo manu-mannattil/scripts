@@ -93,7 +93,7 @@ scrub_tex() {
         /^[ \t]*%/d
         s/%.*//
         s/__TEXSTRIP_PERCENT/\\%/g
-    ' "$@" | tr -s '\n'
+    ' "$@"
 }
 
 # Get main .tex file from a source directory.
@@ -105,7 +105,7 @@ get_main_tex() {
             echo "$name"
             return
         }
-done < <(find "$1" -maxdepth 1 -type f -name '*.tex')
+    done < <(find "$1" -maxdepth 1 -type f -name '*.tex')
     die "${0##*/}: no main .tex file found"
 }
 
@@ -206,7 +206,9 @@ else
     then
         out="${2%/}.zip"
         [[ -f "$out" ]] && rm -f "$out"
-        zip -q "$out" -r "$2"
+        pushd "$(dirname "$out")"
+        zip -q "$out" -r "$(basename "$2")"
+        popd
         echo >&2 "${0##*/}: '$2' -> '$out'"
     fi
 fi
