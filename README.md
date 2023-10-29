@@ -111,6 +111,12 @@ Highlights
     [ebook-organize](ebook-organize) reorganizes a directory of ebooks
     into the form _.../author/title/title.ext_.
 
+-   LaTeX-related utilities: [texclean](texclean) remove temporary files
+    left around when compiling LaTeX documents, [texprune](texprune)
+    makes a clean copy of a LaTeX source tree keeping only the essential
+    files, and [texstrip](texstrip) removes all comments from a LaTeX
+    file.
+
 License
 -------
 

@@ -18,15 +18,15 @@
 #
 # OPTIONS
 #
-#   -n <name>       name of the AppImage (used in the "Name" field in
-#                   the .desktop file to be created)
-#   -b <binary>     path to the binary, e.g., /usr/local/bin/name
-#   -a <appdir>     squashfs-root is extracted to this directory
+#       -n <name>       name of the AppImage (used in the "Name" field
+#                       in the .desktop file to be created)
+#       -b <binary>     path to the binary, e.g., /usr/local/bin/name
+#       -a <appdir>     squashfs-root is extracted to this directory
 #
 # EXAMPLES
 #
 #   o   Install from a local AppImage
-#       appimage-install -n Firefox -b firefox -a /opt/Mozilla/Firefox
+#       appimage-install -n "Firefox Nightly" -b firefox-nightly -a /opt/Mozilla/Firefox firefox-nightly-x86_64.AppImage
 #
 #   o   Install from a URL
 #       appimage-install https://www.slsknet.org/SoulseekQt/Linux/SoulseekQt-2018-1-30-64bit-appimage.tgz
@@ -87,7 +87,7 @@ then
     fi
 
     # Find the AppImage and set it as the only argument.
-    set -- $(find -type f -name '*.AppImage' | head -n 1)
+    set -- "$(find -type f -name '*.AppImage' | head -n 1)"
 elif [[ -f "$1" ]]
 then
     ln -s "$(readlink -e -n -- "$1")" "$tmpdir"
@@ -133,8 +133,7 @@ cp -r squashfs-root "$appdir"
 
 cat >"$bin" <<EOF
 #!/bin/sh
-cd "$appdir"
-exec "./AppRun" "\$@"
+exec "$appdir/AppRun" "\$@"
 EOF
 chmod a+rx "$bin"
 
@@ -161,7 +160,7 @@ fi
 # --- .desktop file ---
 
 mkdir -p "/usr/local/share/applications"
-desktop="/usr/local/share/applications/$name.desktop"
+desktop="/usr/local/share/applications/${bin##*/}.desktop"
 cat >"$desktop" <<EOF
 [Desktop Entry]
 Version=1.0
