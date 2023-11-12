@@ -13,6 +13,7 @@
 #       -f      force overwrite destination files
 #       -s      scrub .tex files by removing comments
 #       -z      make a .zip archive as well
+#       -b      keep .bbl but not .bib
 #
 # DESCRIPTION
 #
@@ -55,12 +56,14 @@ die() {
 scrub="no"
 force="no"
 archive="no"
-while getopts ":fsz" opt
+bbl="no"
+while getopts ":fszb" opt
 do
     case "$opt" in
         s)  scrub="yes"                                    ;;
         f)  force="yes"                                    ;;
         z)  archive="yes"                                  ;;
+        b)  bbl="yes"                                      ;;
         :)  die "${0##*/}: -$OPTARG requires an argument"  ;;
         \?) die "${0##*/}: -$OPTARG is not a valid option" ;;
     esac
@@ -89,9 +92,12 @@ scrub_tex() {
     sed -i -e '
         # What are the chances that your .tex file contains the word
         # __TEXSTRIP_PERCENT?
+        s/%[ \t]*$/__TEXSTRIP_PERCENT_EOL/
         s/\\%/__TEXSTRIP_PERCENT/g
         /^[ \t]*%/d
         s/%.*//
+        s/[ \t]\\{1,\}$//
+        s/__TEXSTRIP_PERCENT_EOL/%/
         s/__TEXSTRIP_PERCENT/\\%/g
     ' "$@"
 }
@@ -146,29 +152,41 @@ cp_tree() {
     pdflatex -interaction=nonstopmode "$main" &>/dev/null
     popd
 
-    # - Descent to a maximum depth of 1 --exclude='/*/'
-    # - Trailing slash after source is important to copy
-    #   just the contents.
-    # - The order of --include/--exclude is important.
-    rsync   --archive              \
-            --copy-links           \
-            --prune-empty-dirs     \
-            --exclude='/*/'        \
-            --exclude='*Notes.bib' \
-            --include='*.bbx'      \
-            --include='*.bib'      \
-            --include='*.bst'      \
-            --include='*.cbx'      \
-            --include='*.cls'      \
-            --include='*.def'      \
-            --include='*.dtx'      \
-            --include='*.fd'       \
-            --include='*.ins'      \
-            --include='*.sty'      \
-            --include='*.tex'      \
-            --include='*/'         \
-            --exclude='*'          \
-            -- "$1/" "$2/"
+    args=(
+        --archive
+        --copy-links
+        --prune-empty-dirs
+        # Descent to a maximum depth of 1 using --exclude='/*/'
+        --exclude='/*/'
+    )
+
+    if [[ "$bbl" = "yes" ]]
+    then
+        args+=( --exclude='*.bib' --include='*.bbl' )
+    else
+        args+=( --exclude='*Notes.bib' )
+    fi
+
+    args+=(
+        --include='*.bbx'
+        --include='*.bib'
+        --include='*.bbl'
+        --include='*.bst'
+        --include='*.cbx'
+        --include='*.cls'
+        --include='*.def'
+        --include='*.dtx'
+        --include='*.fd'
+        --include='*.ins'
+        --include='*.sty'
+        --include='*.tex'
+        --include='*/'
+        --exclude='*'
+    )
+
+    # Trailing slash after source is important to copy
+    # just the contents.
+    rsync "${args[@]}" -- "$1/" "$2/"
 
     if [[ "$scrub" = "yes" ]]
     then
@@ -189,7 +207,7 @@ then
 else
     [[ -d "$1" ]] || die "${0##*/}: source '$1' is not a valid directory"
 
-    if [[ -d "$2" ]]
+    if [[ -e "$2" ]]
     then
         if [[ "$force" = "no" ]]
         then
