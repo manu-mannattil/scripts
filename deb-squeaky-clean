@@ -2,20 +2,36 @@
 #
 # NAME
 #
-#   apt-squeaky-clean - autoremove packages and clean system
+#   deb-squeaky-clean - clean a Debian desktop system
 #
 # SYNOPSIS
 #
-#   apt-squeaky-clean
+#   deb-squeaky-clean
 #
 # DESCRIPTION
 #
-#   apt-squeaky-clean clears APT's cache and also removes residual and
-#   broken packages.
+#   squeaky-clean clears APT's cache, removes residual and
+#   broken packages, removes other temporary and/or log
+#   files, etc.
 #
 
 [[ $(id -u) == 0 ]] || exec sudo -- "$0" "$@"
 
+# Log files ------------------------------------------------------------
+
+# Delete all old, gzipped, and rotated log files.
+find /var/log -type f -name '*.gz' -delete
+find /var/log -type f -name '*.[0-9]' -delete
+find /var/log -type f -name '*.old' -delete
+
+# Remove systemd log files that are older than 1 day.
+# https://unix.stackexchange.com/q/130786
+journalctl --vacuum-time=1d
+
+# APT packages ---------------------------------------------------------
+
+# Remove orphaned packages and other useless packages.
+apt --yes purge $(deborphan)
 apt --yes --purge autoremove
 apt --yes clean
 
@@ -26,3 +42,31 @@ IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep '^rc' | cut -d ' ' -f 3)
 # Purge broken packages.
 IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep '^iU' | cut -d ' ' -f 3)
 [[ ${#pkgs[@]} == 0 ]] || dpkg --purge "${pkgs[@]}"
+
+# Network Manager -------------------------------------------------------
+
+# Gets days since supplied date.
+nm_days_unused() {
+    if [[ "$1" == "never" ]]
+    then
+        echo 1000000
+    else
+        before=$(date -d "$1" +%s)
+        today=$(date +%s)
+        echo $(( (today - before) / 86400 ))
+    fi
+}
+
+# Remove all WiFi connections that haven't been used in more than 180
+# days.
+while IFS= read -r line
+do
+    uuid=$(echo "$line" | sed 's/\(^[^ \t]*\).*/\1/')
+    used=$(echo "$line" | sed 's/^[^ \t]*[ \t]*//;s/[ \t]*$//')
+    [[ "$used" == "TIMESTAMP-REAL" ]] && continue
+
+    if [[ $(nm_days_unused "$used") -gt 180 ]]
+    then
+        nmcli con delete uuid "$uuid"
+    fi
+done < <(nmcli --fields UUID,TIMESTAMP-REAL con show)

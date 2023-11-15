@@ -30,43 +30,45 @@
 [[ "$*" ]] || set -- "."
 
 IFS=$'\n' read -d '' -r -a files < <(find "$@" -type f -name '*.tex' |
-awk '{
-    sub(".tex$", "")
+    awk '{
+        sub(".tex$", "")
 
-    print $0 ".aux"
-    print $0 ".bbl"
-    print $0 ".bcf"
-    print $0 ".blg"
-    print $0 ".fdb_latexmk"
-    print $0 ".fls"
-    print $0 ".gz"
-    print $0 ".log"
-    print $0 ".nav"
-    print $0 ".out"
-    print $0 ".run.xml"
-    print $0 ".snm"
-    print $0 ".spl"
-    print $0 ".synctex.gz"
-    print $0 ".synctex.gz(busy)"
-    print $0 ".toc"
-    print $0 ".xdv"
-    print $0 ".xml"
-    print $0 "Notes.bib"
-    print "texput.fls"
-    print "texput.log"
+        print $0 ".aux"
+        print $0 ".bbl"
+        print $0 ".bcf"
+        print $0 ".blg"
+        print $0 ".fdb_latexmk"
+        print $0 ".fls"
+        print $0 ".gz"
+        print $0 ".log"
+        print $0 ".nav"
+        print $0 ".out"
+        print $0 ".run.xml"
+        print $0 ".snm"
+        print $0 ".spl"
+        print $0 ".synctex.gz"
+        print $0 ".synctex.gz(busy)"
+        print $0 ".toc"
+        print $0 ".xdv"
+        print $0 ".xml"
+        print $0 "Notes.bib"
+        print "texput.fls"
+        print "texput.log"
 
-    # Remove temporary files produced by latexrun.
-    # https://github.com/aclements/latexrun
-    sub("[^/]*$", "")
-    print $0 "latex.out/"
-    print $0 ".latexrun.db"
-    print $0 ".latexrun.db.lock"
+        # Remove temporary files produced by latexrun.
+        # https://github.com/aclements/latexrun
+        sub("[^/]*$", "")
+        print $0 "latex.out/"
+        print $0 ".latexrun.db"
+        print $0 ".latexrun.db.lock"
 
-    # Remove temporary files created by the minted package.
-    print $0 "_minted-article"
+        # Remove temporary files created by the minted package.
+        print $0 "_minted-article"
 
-    # Remove tags file (created by ctags).
-    print $0 "tags"
-}')
+        # Remove tags file (created by ctags).
+        print $0 "tags"
+    }' 
+    find "$@" -type f -iname "pdflatex*.fls"
+)
 
 rm -v -rf "${files[@]}"
