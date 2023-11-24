@@ -7,7 +7,8 @@
 #
 # SYNOPSIS
 #
-#   passprint [<output>.pdf]
+#   passprint [-au] [<output>.pdf]
+#   passprint -o
 #
 # DESCRIPTION
 #
@@ -24,7 +25,7 @@
 # CONFIGURATION
 #
 #   To use passprint, first create a gpg2-encrypted configuration file
-#   '.passprint.conf' inside the $PASSWORD_STORE_DIR (by default
+#   '.passprint.conf.gpg' inside the $PASSWORD_STORE_DIR (by default
 #   ~/.password-store).  This configuration file should be a shell
 #   script that can be 'evaled' in Bash, and _must_ contain the variable
 #   $PASSPRINT_PREFIX, which is an extended regular expression that will
@@ -43,18 +44,19 @@
 #   passed to the -path option of find(1).
 #
 # DEPENDENCIES
-#   
+#
 #   pdflatex(1), md5sum(1), mktemp(1), and pass(1)
 #
 # [1]: https://www.passwordstore.org
 # [2]: https://www.schneier.com/blog/archives/2005/06/write_down_your.html
 #
 
-set -o pipefail
-set -e
-
 : "${PASSWORD_STORE_DIR:=${HOME}/.password-store}"
-: "${PASSPRINT_CONF:=${PASSWORD_STORE_DIR}/.passprint.conf}"
+: "${PASSPRINT_CONF:=${PASSWORD_STORE_DIR}/.passprint.conf.gpg}"
+
+prefix_check=1
+print_all=0
+print_totp=0
 
 if command -v gpg2 &>/dev/null
 then
@@ -89,28 +91,38 @@ trap 'exit 2' HUP INT QUIT TERM
 
 # Arguments for the find command that will be run inside
 # $PASSWORD_STORE_DIR.
-find_args=("-type" "f" "-name" "*.gpg")
+find_args=( -type f -name '*.gpg' -not -name "${PASSPRINT_CONF##*/}" )
 for entry in "${PASSPRINT_EXCLUDE[@]}"
 do
     find_args+=( "!" "-path" "$entry" )
 done
 
 mklatex() {
-    CPATH= cd "$PASSWORD_STORE_DIR"
+    CPATH= pushd "$PASSWORD_STORE_DIR" &>/dev/null
     cat <<EOF
-    \documentclass[twocolumn,10pt]{article}
+    \documentclass[twocolumn,a4paper,10pt]{article}
+    \usepackage[utf8]{inputenc}
+    \usepackage[T1]{fontenc}
     \usepackage[margin=0.25in]{geometry}
-    \setlength\parindent{0pt}
-    \renewcommand{\familydefault}{\ttdefault}
-    \begin{document}
-    \small
-    \begin{verbatim}
+    \usepackage{fancyvrb,fvextra}
+    \begin{document}\small
+    \begin{Verbatim}[
+    breakanywhere,
+    breaklines,
+    breaksymbolindentleftnchars=2,
+    breaksymbolindentrightnchars=2,
+    breaksymbolsepleftnchars=1,
+    breaksymbolseprightnchars=1
+    ]
 EOF
     while IFS= read -r path
     do
         local entry=$(echo "$path" | sed 's|^\./||;s|.gpg$||')
         "$GPG" --batch --decrypt --quiet --use-agent --yes "$path" 2>/dev/null |
-        awk -v entry="$entry" -v prefix="$PASSPRINT_PREFIX" '
+        awk -v entry="$entry"                                                  \
+            -v prefix="$PASSPRINT_PREFIX"                                      \
+            -v prefix_check="$prefix_check"                                    \
+            -v print_all="$print_all" '
             BEGIN {
                 valid = 1
             }
@@ -120,30 +132,39 @@ EOF
             }
 
             (NR == 1) {
-                if ($0 !~ prefix) {
+                if ($0 !~ prefix && prefix_check) {
                     warn(sprintf("password for \"%s\" does not have a valid prefix.", entry))
                     warn(sprintf("refusing to print \"%s\".", entry))
 
                     valid = 0
                     exit
                 } else {
-                    sub(prefix, "")
-                    sub("[[:space:]]+$", "")
+                    if (prefix_check == 1)
+                        sub(prefix, "")
 
+                    sub("[[:space:]]+$", "")
                     printf("%s\n", entry)
                     printf("  %s\n", $0)
                 }
             }
 
-            /^\|/ && (NR != 1) {
-                sub("^\\|[[:space:]]{,2}", "")
-                sub("[[:space:]]+$", "")
-                printf("  %s\n", $0)
+            {
+                if (($0 ~ /(^\||.*otpauth:.*)/ || print_all) && NR != 1) {
+                    sub("^\\|[[:space:]]{,2}", "")
+                    if (print_all)
+                        sub("[[:space:]]{,2}", "")
+
+                    sub("[[:space:]]+$", "")
+                    printf("  %s\n", $0)
+                }
             }
 
             END {
-                if (valid)
+                if (valid) {
                     printf("\n")
+                    printf("% --------------------------------------------------------")
+                    printf("\n")
+                }
             }
         '
     done < <(find "${find_args[@]}" | sort)
@@ -155,20 +176,20 @@ EOF
     local randstr=$(head /dev/urandom | md5sum | cut -d ' ' -f 1)
 
     cat <<EOF
-    \end{verbatim}
     ** $randstr
 
     ** $date
+    \end{Verbatim}
     \end{document}
 EOF
-    cd "$OLDPWD"
+    popd &>/dev/null
 }
 
 mkpdf() {
     # For reasons I don't understand (nor have the patience to), piping
     # to pdflatex doesn't work well.
     mklatex >"${tmpdir}/texput.tex"
-    if pdflatex -interaction=nonstopmode    \
+    if xelatex  -interaction=nonstopmode    \
                 -output-directory "$tmpdir" \
                 "${tmpdir}/texput.tex" &>/dev/null
     then
@@ -180,5 +201,35 @@ mkpdf() {
     fi
 }
 
-[[ -n "$*" ]] || set -- "$(date +%Y-%m-%d).pdf"
-mkpdf "$1"
+totp_codes() {
+    CPATH= pushd "$PASSWORD_STORE_DIR" &>/dev/null
+    while IFS= read -r path
+    do
+        local entry=$(echo "$path" | sed 's|^\./||;s|.gpg$||')
+        "$GPG" --batch --decrypt --quiet --use-agent --yes "$path" 2>/dev/null | grep -s 'otpauth:\/\/'
+    done < <(find "${find_args[@]}" | sort)
+    popd &>/dev/null
+}
+
+while getopts ":aou" opt
+do
+    case "$opt" in
+        a)  print_all=1 ;;
+        o)  print_totp=1 ;;
+        u)  prefix_check=0 ;;
+        \?) echo >&2 "${0##*/}: -$OPTARG is not a valid option"
+            exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+if [[ "$print_totp" == 1 ]]
+then
+    echo >&2 "${0##*/}: print TOTP codes to stdout"
+    totp_codes
+else
+    [[ -n "$*" ]] || set -- "$(date +%Y-%m-%d).pdf"
+    [[ "$print_all" == 1 ]] && echo >&2 "${0##*/}: WARNING: printing everything!"
+    [[ "$prefix_check" == 0 ]] && echo >&2 "${0##*/}: WARNING: prefix checking is off; unsafe!"
+    mkpdf "$1"
+fi
