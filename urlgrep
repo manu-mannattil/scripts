@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # NAME
 #
@@ -6,7 +6,7 @@
 #
 # SYNOPSIS
 #
-#   urlgrep [--chrome|--lynx|--wget] <url>...
+#   urlgrep [--all|--chrome|--elinks|--wget] [--filter-web] <url>...
 #
 # DESCRIPTION
 #
@@ -26,54 +26,82 @@
 #   wget(1), google-chrome(1), lynx(1
 #
 
-fetch="fetch_wget"
-case "$1" in
-    --chrome|--lynx|--wget)
-        fetch="fetch_${1#--}"
-        shift ;;
-    -*)
-        echo >&2 "${0##*/} unknown option $1"
-        exit 1 ;;
-esac
+fetch="fetch_all"
+filter="filter_none"
 
-tmpfile="/tmp/urlgrep.$$"
-trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+while [[ "$1" =~ ^-- ]]
+do
+    case "$1" in
+        --chrome|--elinks|--wget|--all)
+            fetch="fetch_${1#--}"
+            shift ;;
+        --filter-web)
+            filter="filter_web"
+            shift ;;
+        -*)
+            echo >&2 "${0##*/} unknown option $1"
+            exit 1 ;;
+    esac
+done
+
+tmpfile="/tmp/urlgrep.$RANDOM"
+trap 'rm -rf "$tmpfile" &>/dev/null' EXIT
 trap 'exit 2' HUP INT QUIT TERM
 
 # Each fetch function must print the contents of a URL to the stdout.
 
 fetch_chrome() {
-    google-chrome                                \
-        --icognito                               \
-        --no-first-run                           \
-        --headless                               \
-        --disable-background-networking          \
-        --disable-client-side-phishing-detection \
-        --disable-component-update               \
-        --disable-default-apps                   \
-        --disable-sync                           \
-        --no-default-browser-check               \
-        --no-first-run                           \
+    # The below Chrome options were procured from various discussions on
+    # the Internet.  They're probably not all required.
+    google-chrome                                                   \
+        --disable-audio-output                                      \
+        --disable-dev-shm-usage                                     \
+        --disable-gpu                                               \
+        --headless                                                  \
+        --icognito                                                  \
+        --no-default-browser-check                                  \
+        --no-first-run                                              \
+        --no-sandbox                                                \
+        --single-process                                            \
+        --timeout=10000                                             \
+        --virtual-time-budget=10000                                 \
         --dump-dom "$1" 2>/dev/null
 }
 
-fetch_lynx() {
-    lynx -dump -list only "$1"
+fetch_elinks() {
+    elinks -dump "$1"
 }
 
 fetch_wget() {
-    wget                                         \
-        --convert-links                          \
-        --execute robots=off                     \
-        --no-config                              \
-        --quiet                                  \
-        --retry-connrefused                      \
+    wget                                                            \
+        --convert-links                                             \
+        --execute robots=off                                        \
+        --no-config                                                 \
+        --quiet                                                     \
+        --retry-connrefused                                         \
         --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36' \
         --output-document "$tmpfile" "$url"
     cat "$tmpfile"
 }
 
+fetch_all() {
+    fetch_chrome "$1"
+    fetch_elinks "$1"
+    fetch_wget "$1"
+}
+
+# Filter URLs that point to files with common web extensions.
+filter_web() {
+    grep -v -E '\.((r|x|s)?html?|adp|ashx|asmx|aspx?|asx|atom|axd|ccss|cer|cgi|css|dtl|erb|hcsp|hss|hta|htc|js|jsp|less|php|pl|rjs|rss|sass|ts|woff|xml|yaws)(\?|$)' | sed 's|/$||' | sort | uniq
+}
+
+filter_none() {
+    sort | uniq
+}
+
 for url
 do
-    "$fetch" "$url" | grep -o -E "https?://[][[:alnum:]._~:/?#@!$&'()*+,;%=-]+"
+    "$fetch" "$url"                                                 \
+        | grep -o -E "https?://[][[:alnum:]._~:/?#@!$&'()*+,;%=-]+" \
+        | "$filter"
 done
