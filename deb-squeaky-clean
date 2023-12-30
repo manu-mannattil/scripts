@@ -30,8 +30,7 @@ journalctl --vacuum-time=1d
 
 # APT packages ---------------------------------------------------------
 
-# Remove orphaned packages and other useless packages.
-apt --yes purge $(deborphan)
+# Remove useless packages.
 apt --yes --purge autoremove
 apt --yes clean
 
