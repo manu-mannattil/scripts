@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# NAME
+#
+#   urlgrep - print all HTTP links from a URL
+#
+# SYNOPSIS
+#
+#   urlgrep [--chrome|--lynx|--wget] <url>...
+#
+# DESCRIPTION
+#
+#   urlgrep prints all the HTTP links from a given URL.  To do so, we
+#   cannot simply use something like
+#
+#       curl <url> | grep <url_regex>
+#
+#   This is because most links in a webpage are relative links and they
+#   need to be resolved to produce absolute URLs.  For this, we need to
+#   use a backend.  wget and lynx work as backends in many cases, but
+#   when the page is loaded dynamically using JavaScript, we need an
+#   actual browser to do the job.
+#
+# DEPENDENCIES
+#
+#   wget(1), google-chrome(1), lynx(1
+#
+
+fetch="fetch_wget"
+case "$1" in
+    --chrome|--lynx|--wget)
+        fetch="fetch_${1#--}"
+        shift ;;
+    -*)
+        echo >&2 "${0##*/} unknown option $1"
+        exit 1 ;;
+esac
+
+tmpfile="/tmp/urlgrep.$$"
+trap 'rm -rf "$tmpfile" >/dev/null 2>&1' EXIT
+trap 'exit 2' HUP INT QUIT TERM
+
+# Each fetch function must print the contents of a URL to the stdout.
+
+fetch_chrome() {
+    google-chrome                                \
+        --icognito                               \
+        --no-first-run                           \
+        --headless                               \
+        --disable-background-networking          \
+        --disable-client-side-phishing-detection \
+        --disable-component-update               \
+        --disable-default-apps                   \
+        --disable-sync                           \
+        --no-default-browser-check               \
+        --no-first-run                           \
+        --dump-dom "$1" 2>/dev/null
+}
+
+fetch_lynx() {
+    lynx -dump -list only "$1"
+}
+
+fetch_wget() {
+    wget                                         \
+        --convert-links                          \
+        --execute robots=off                     \
+        --no-config                              \
+        --quiet                                  \
+        --retry-connrefused                      \
+        --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.101 Safari/537.36' \
+        --output-document "$tmpfile" "$url"
+    cat "$tmpfile"
+}
+
+for url
+do
+    "$fetch" "$url" | grep -o -E "https?://[][[:alnum:]._~:/?#@!$&'()*+,;%=-]+"
+done

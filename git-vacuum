@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   git-vaccum - garbage collect a git repository
+#
+# SYNOPSIS
+#
+#   git-vacuum
+#
+# DEPENDENCIES
+#
+#   git(1), google-chrome(1), lynx(1
+#
+
+set -eu
+
+git remote prune origin 
+git repack 
+git prune-packed 
+git reflog expire --expire=1.month.ago 
+git gc --aggressive
