@@ -93,6 +93,7 @@ done
 # after a test like -regex, then it will issue a warning; that's the
 # reason why we're passing -nowarn.
 args+=(
+    -L
     -nowarn
     -regextype egrep
 )
