@@ -40,7 +40,7 @@ from pydoc import pager
 from unicodedata import normalize
 
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
-SEARCH_URL = "https://www.google.com/search?btnI&q=site:www.azlyrics.com"
+SEARCH_URL = "https://www.google.com/search?hl=en&btnI&q=site:www.azlyrics.com"
 REDIRECT_RE = r"href=['\"](https?://www.azlyrics.com/[^'\"]*)['\"]"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible)", "Referer": "www.google.com"}
 
@@ -73,7 +73,7 @@ def get_lyrics(keyword):
     req = requests.get(url, headers=HEADERS)
 
     # Google seems to be using JavaScript for redirection these days.
-    if re.search(r"Redirect Notice", req.text):
+    if re.search(r"unauthorizedredirect", req.text):
         new_url = re.search(REDIRECT_RE, req.text).group(1)
         req = requests.get(new_url, headers=HEADERS)
         # requests seems to have trouble realizing that azlyrics.com
