@@ -6,14 +6,20 @@
 #
 # SYNOPSIS
 #
-#   texprune [-fsz] <src_dir> <dst_dir>
+#   texprune [-bcfsz] <src_dir> <dst_dir>
 #
 # OPTIONS
 #
+#       -b      keep .bbl but not .bib
+#       -c      optimize (compress) PDF figures before copying
 #       -f      force overwrite destination files
 #       -s      scrub .tex files by removing comments
 #       -z      make a .zip archive as well
-#       -b      keep .bbl but not .bib
+#
+#   The above options can also be set in an environment variable
+#   TEXPRUNE_OPTS, e.g.,
+#
+#       export TEXPRUNE_OPTS="-b -c"
 #
 # DESCRIPTION
 #
@@ -39,12 +45,13 @@
 #
 # DEPENDENCIES
 #
-#   GNU coreutils, pdflatex(1), rsync(1), and zip(1)
+#   GNU coreutils, pdflatex(1), rsync(1), gs(1) or pdfsizeopt(1),
+#   and zip(1)
 #
 # SEE ALSO
 #
 #   arXiv LaTeX Cleaner
-#       <https://github.com/google-research/arxiv-latex-cleaner/>
+#   <https://github.com/google-research/arxiv-latex-cleaner/>
 #
 
 die() {
@@ -52,18 +59,23 @@ die() {
     exit 1
 }
 
+# Load options from environment if available.
+[[ "$TEXPRUNE_OPTS" ]] && set -- $TEXPRUNE_OPTS "$@"
+
 # First round of option processing.
-scrub="no"
-force="no"
 archive="no"
 bbl="no"
-while getopts ":fszb" opt
+force="no"
+optimize="no"
+scrub="no"
+while getopts ":fszbc" opt
 do
     case "$opt" in
-        s)  scrub="yes"                                    ;;
-        f)  force="yes"                                    ;;
-        z)  archive="yes"                                  ;;
         b)  bbl="yes"                                      ;;
+        c)  optimize="yes"                                 ;;
+        f)  force="yes"                                    ;;
+        s)  scrub="yes"                                    ;;
+        z)  archive="yes"                                  ;;
         :)  die "${0##*/}: -$OPTARG requires an argument"  ;;
         \?) die "${0##*/}: -$OPTARG is not a valid option" ;;
     esac
@@ -116,7 +128,7 @@ get_main_tex() {
 }
 
 # Get included figures.
-# Synopsis: get_figures() <dir>
+# Synopsis: get_figures <dir>
 get_figures() {
     pushd "$1"
     while IFS= read -r log
@@ -130,6 +142,43 @@ get_figures() {
     popd
 }
 
+# Compare the sizes of two files.
+# Synopsis: compare_size <file1> <file2>
+compare_size() {
+    a=$(stat -c%s "$1")
+    b=$(stat -c%s "$2")
+    printf >&2 "${0##*/}: reduced size of '${1##*/}' by %s%%\n" \
+        $(echo "scale=2; ($a - $b)*100/$a" | bc)
+}
+
+# Optimize PDFs using GhostScript or pdfsizeopt.
+# Synopsis: pdf_optimize <input> <output>
+pdf_optimize() {
+    if command -v pdfsizeopt &>/dev/null
+    then
+        pdfsizeopt "$1" "$2" &>/dev/null && compare_size "$1" "$2"
+    elif command -v gs &>/dev/null
+    then
+        gs 2>/dev/null                           \
+            -sDEVICE=pdfwrite                    \
+            -dBATCH                              \
+            -dNOPAUSE                            \
+            -dQUIET                              \
+            -dSAFER                              \
+            -dAutoRotatePages=/None              \
+            -dEmbedAllFonts=true                 \
+            -dSubsetFonts=true                   \
+            -dCompatibilityLevel=1.4             \
+            -dPDFA=2                             \
+            -dPDFACompatibilityPolicy=1          \
+            -sOutputFile="$2" "$1" && compare_size "$1" "$2"
+    else
+        cp "$1" "$2"
+    fi
+
+    return $?
+}
+
 # Copy figures from <src_dir> to <dst_dir>
 # Synopsis: cp_figures <src_dir> <dst_dir>
 cp_figures() {
@@ -137,8 +186,16 @@ cp_figures() {
     do
         src=$(get_path "$1" "$name")
         outdir="$2/$(dirname "$name")"
+        tar="$outdir/$(basename "$name")"
         mkdir -p "$outdir"
-        cp "$src" "$outdir/$(basename "$name")"
+
+        if [[ "${src##*.}" == "pdf" ]] && [[ "$optimize" == "yes" ]]
+        then
+            echo >&2 "${0##*/}: optimizing and copying '${src##*/}'"
+            pdf_optimize "$src" "$tar" || cp "$src" "$tar"
+        else
+            cp "$src" "$tar"
+        fi
     done < <(get_figures "$1")
 }
 
@@ -164,13 +221,11 @@ cp_tree() {
     then
         args+=( --exclude='*.bib' --include='*.bbl' )
     else
-        args+=( --exclude='*Notes.bib' )
+        args+=( --exclude='*Notes.bib' --include='*.bib' )
     fi
 
     args+=(
         --include='*.bbx'
-        --include='*.bib'
-        --include='*.bbl'
         --include='*.bst'
         --include='*.cbx'
         --include='*.cls'
@@ -203,7 +258,7 @@ cp_tree() {
 
 if [[ $# -lt 2 ]]
 then
-    die "usage: ${0##*/} [-fsz] <src_dir> <dst_dir>"
+    die "usage: ${0##*/} [-bcfsz] <src_dir> <dst_dir>"
 else
     [[ -d "$1" ]] || die "${0##*/}: source '$1' is not a valid directory"
 
