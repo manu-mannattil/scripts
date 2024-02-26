@@ -45,8 +45,8 @@
 #
 # DEPENDENCIES
 #
-#   GNU coreutils, pdflatex(1), rsync(1), gs(1) or pdfsizeopt(1),
-#   and zip(1)
+#   GNU coreutils, pdflatex(1), rsync(1), zip(1), and optionally
+#   latexmk(1), and pdfsizeopt(1) or gs(1).
 #
 # SEE ALSO
 #
@@ -202,11 +202,25 @@ cp_figures() {
 # Main function.
 # Synopsis: cp_tree <src_dir> <dst_dir>
 cp_tree() {
-    # Compile main LaTeX to ensure the presence of log files.
     pushd "$1"
     main=$(get_main_tex .)
-    echo >&2 "${0##*/}: compiling main .tex file '$main'"
-    pdflatex -interaction=nonstopmode "$main" &>/dev/null
+
+    # Start with a "clean" tree.
+    rm -f *.log *.aux *.bbl *.blg *.out
+
+    # Compile main LaTeX to ensure the presence of *.log and *.bbl files.
+    if command -v latexmk &>/dev/null
+    then
+        echo >&2 "${0##*/}: compiling main .tex file '$main' using latexmk"
+        latexmk -pdf -ps- -dvi- -pdflatex='pdflatex -interaction=nonstopmode' "$main" &>/dev/null
+    else
+        echo >&2 "${0##*/}: compiling main .tex file '$main' using pdflatex"
+        pdflatex -interaction=nonstopmode "$main" &>/dev/null
+        bibtex -terse "${main%.*}" &>/dev/null
+        pdflatex -interaction=nonstopmode "$main" &>/dev/null
+        pdflatex -interaction=nonstopmode "$main" &>/dev/null
+    fi
+
     popd
 
     args=(
