@@ -23,7 +23,7 @@
 #
 # DEPENDENCIES
 #
-#   wget(1), google-chrome(1), lynx(1
+#   wget(1), google-chrome(1), elinks(1)
 #
 
 fetch="fetch_all"

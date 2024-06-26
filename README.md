@@ -16,6 +16,14 @@ available in the Debian repositories).
 Highlights
 ----------
 
+-   [2ascii](2ascii) and [2utf8](2utf8) converts text files to ASCII and
+    UTF-8, respectively.
+
+-   [2mp3](2mp3) transcodes audio files to MP3 using FFMpeg.
+
+-   [adb-refresh](adb-refresh) uses ADB to refresh media storage on an
+    Android device.
+
 -   [goop](goop) is a filename "detoxing" script named after the
     [company][goop] of the same name.  The basic usage is `goop <file>...`.
     The purpose of goop is to safely remove spaces and other special
@@ -65,6 +73,7 @@ Highlights
     force you to click and link to read the full post) into full feeds.
 
 -   PDF manipulation scripts based on [PDFtk][pdftk] and Ghostscript:
+    [pdfbew](pdfbw) converts PDFs to grayscale;
     [pdfcompress](pdfcompress) compresses PDF files using Ghostscript;
     [pdfmetaedit](pdfmetaedit) is a script that will let you edit the
     metadata (e.g., "author" and "title" fields) of a PDF file using

@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# NAME
+#
+#   jpgcompress - compress JPG files using ImageMagick
+#
+# SYNOPSIS
+#
+#   jpgcompress [<file>...]
+#
+# DEPENDENCIES
+#
+#   mogrify(1) and stat(1)
+#
+
+for img
+do
+    [ "${img##*.}" = "jpg" ] || [ "${img##*.}" = "jpeg" ] || continue
+    a=$(stat -c%s "$img")
+    mogrify -strip -interlace JPEG -gaussian-blur 0.05 -quality 85% "$img"
+    b=$(stat -c%s "$img")
+    printf >&2 "$img %s%%\n" $(echo "scale=2; ($a - $b)*100/$a" | bc)
+done

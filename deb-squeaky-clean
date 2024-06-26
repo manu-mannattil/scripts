@@ -10,8 +10,8 @@
 #
 # DESCRIPTION
 #
-#   squeaky-clean clears APT's cache, removes residual and
-#   broken packages, removes other temporary and/or log
+#   deb-squeaky-clean clears APT's cache, removes residual
+#   and broken packages, removes other temporary and/or log
 #   files, etc.
 #
 

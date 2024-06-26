@@ -17,8 +17,11 @@
 sed -e '
     # What are the chances that your .tex file contains the word
     # __TEXSTRIP_PERCENT?
+    s/%[ \t]*$/__TEXSTRIP_PERCENT_EOL/
     s/\\%/__TEXSTRIP_PERCENT/g
     /^[ \t]*%/d
     s/%.*//
+    s/[ \t]\\{1,\}$//
+    s/__TEXSTRIP_PERCENT_EOL/%/
     s/__TEXSTRIP_PERCENT/\\%/g
 ' "$@" | tr -s '\n'
