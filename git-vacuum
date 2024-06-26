@@ -10,13 +10,23 @@
 #
 # DEPENDENCIES
 #
-#   git(1), google-chrome(1), lynx(1
+#   git(1)
 #
 
 set -eu
 
-git remote prune origin 
-git repack 
-git prune-packed 
-git reflog expire --expire=1.month.ago 
+reposize() {
+    du -s "$(git rev-parse --show-toplevel)" | cut -f 1
+}
+
+before=$(reposize)
+
+git remote prune origin
+git repack
+git prune-packed
+git reflog expire --expire=1.month.ago
 git gc --aggressive
+
+after=$(reposize)
+printf >&2 "\nRepository size reduced by %s%%.\n" \
+    $(echo "scale=2; ($before - $after)*100/$before" | bc)
