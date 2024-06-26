@@ -206,13 +206,13 @@ cp_tree() {
     main=$(get_main_tex .)
 
     # Start with a "clean" tree.
-    rm -f *.log *.aux *.bbl *.blg *.out
+    rm -rf *.log *.aux *.bbl *.blg *.out latex.out
 
     # Compile main LaTeX to ensure the presence of *.log and *.bbl files.
     if command -v latexmk &>/dev/null
     then
         echo >&2 "${0##*/}: compiling main .tex file '$main' using latexmk"
-        latexmk -pdf -ps- -dvi- -pdflatex='pdflatex -interaction=nonstopmode' "$main" &>/dev/null
+        latexmk -norc -pdf -ps- -dvi- -pdflatex='pdflatex -interaction=nonstopmode' "$main" &>/dev/null
     else
         echo >&2 "${0##*/}: compiling main .tex file '$main' using pdflatex"
         pdflatex -interaction=nonstopmode "$main" &>/dev/null
