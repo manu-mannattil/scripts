@@ -6,13 +6,14 @@
 #
 # SYNOPSIS
 #
-#   texprune [-bcfsz] <src_dir> <dst_dir>
+#   texprune [-b|-m] [-cfsz] <src_dir> <dst_dir>
 #
 # OPTIONS
 #
 #       -b      keep .bbl but not .bib
 #       -c      optimize (compress) PDF figures before copying
 #       -f      force overwrite destination files
+#       -m      merge the .bbl file with the main TeX file
 #       -s      scrub .tex files by removing comments
 #       -z      make a .zip archive as well
 #
@@ -68,10 +69,12 @@ bbl="no"
 force="no"
 optimize="no"
 scrub="no"
-while getopts ":fszbc" opt
+merge_bbl="no"
+while getopts ":fszbcm" opt
 do
     case "$opt" in
         b)  bbl="yes"                                      ;;
+        m)  merge_bbl="yes"                                ;;
         c)  optimize="yes"                                 ;;
         f)  force="yes"                                    ;;
         s)  scrub="yes"                                    ;;
@@ -212,9 +215,11 @@ cp_tree() {
     if command -v latexmk &>/dev/null
     then
         echo >&2 "${0##*/}: compiling main .tex file '$main' using latexmk"
+        latexmk -norc -pdf -ps- -dvi- -C &>/dev/null
         latexmk -norc -pdf -ps- -dvi- -pdflatex='pdflatex -interaction=nonstopmode' "$main" &>/dev/null
     else
         echo >&2 "${0##*/}: compiling main .tex file '$main' using pdflatex"
+        rm -f *.log *.aux *.bbl
         pdflatex -interaction=nonstopmode "$main" &>/dev/null
         bibtex -terse "${main%.*}" &>/dev/null
         pdflatex -interaction=nonstopmode "$main" &>/dev/null
@@ -231,7 +236,7 @@ cp_tree() {
         --exclude='/*/'
     )
 
-    if [[ "$bbl" = "yes" ]]
+    if [[ "$bbl" = "yes" ]] || [[ "$merge_bbl" = "yes" ]]
     then
         args+=( --exclude='*.bib' --include='*.bbl' )
     else
@@ -268,6 +273,28 @@ cp_tree() {
     fi
 
     cp_figures "$1" "$2"
+
+    if [[ "$merge_bbl" = "yes" ]]
+    then
+        pushd "$2"
+        main=$(get_main_tex .)
+        bbl="${main%.*}.bbl"
+
+        if [[ -f "$bbl" ]]
+        then
+            tmp="texprune-merged-$$.tex"
+            sed '/\\bibliography{[^}]*}/Q' "$main"   >>"$tmp"
+            echo -e '\n% --- bibliography --- %\n'   >>"$tmp"
+            cat "$bbl" | sed '/^%/d'                 >>"$tmp"
+            echo -e '\n% -------------------- %\n'   >>"$tmp"
+            sed '1,/\\bibliography{[^}]*}/d' "$main" >>"$tmp"
+            mv -f "$tmp" "$main"
+            rm -f "$bbl"
+        else
+            echo >&2 "${0##*/}: .bbl file not found; not merging"
+        fi
+        popd
+    fi
 }
 
 if [[ $# -lt 2 ]]
