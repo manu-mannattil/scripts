@@ -11,9 +11,9 @@
 #   com --help
 #
 # com scans the supplied files line by line and looks for comment lines
-# beginning with the keyword "com: " and executes the rest of the line
-# as a shell command.  When doing so, it substitutes the following
-# variables [2]
+# beginning with the keyword "com: " (or a $) and executes the rest of
+# the line as a shell command.  When doing so, it substitutes the
+# following variables [2]
 #
 #   variable    substitution
 #   --------    ------------
@@ -78,19 +78,20 @@ from os import path
 from shlex import quote
 
 # Regex to match "com lines" according to file extension.
-DEFAULT_RE = r"^\s*#+\s*com\s*:\s*"
+COM_RE = r"\s*(com\s*:|\$)\s*"
+DEFAULT_RE = r"^\s*#+\s*" + COM_RE
 EXTENSION_RE = {
-    ".c": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".cc": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".cpp": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".dbj": r"^\s*%+\s*com\s*:\s*",
-    ".go": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".hs": r"^\s*({?-+|--+)\s*com\s*:\s*",
-    ".js": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".lhs": r"^\s*({?-+|--+)\s*com\s*:\s*",
-    ".rs": r"^\s*(\/?\*+|\/\/)\s*com\s*:\s*",
-    ".scm": r"^\s*;+\s*com\s*:\s*",
-    ".tex": r"^\s*%+\s*com\s*:\s*",
+    ".c": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".cc": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".cpp": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".dbj": r"^\s*%+" + COM_RE,
+    ".go": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".hs": r"^\s*({?-+|--+)" + COM_RE,
+    ".js": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".lhs": r"^\s*({?-+|--+)" + COM_RE,
+    ".rs": r"^\s*(\/?\*+|\/\/)" + COM_RE,
+    ".scm": r"^\s*;+" + COM_RE,
+    ".tex": r"^\s*%+" + COM_RE,
 }
 
 def digest(string):
@@ -179,7 +180,7 @@ def main():
     arg_parser.add_argument("args", help="additional arguments", nargs="*")
 
     args = arg_parser.parse_args()
-    com(args.file, args.args, args.dry_run, args.shell, args.x_trace)
+    return com(args.file, args.args, args.dry_run, args.shell, args.x_trace)
 
 if __name__ == "__main__":
     sys.exit(main())
