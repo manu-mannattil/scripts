@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# NAME
+#
+#   git-fetch-latest-tag - clone the most recent tag of a repository
+#
+# SYNOPSIS
+#
+#   git-fetch-latest-tag <repository> [<directory>]
+#
+
+set -eu
+
+tag=$(git ls-remote --tags --sort=v:refname "$1" | tail -n1 | sed 's/.*\///; s/\^{}//')
+if [ "$tag" ]
+then
+    echo >&2 "${0##*/}: cloning $tag"
+    exec git clone --depth=1 --branch "$tag" --single-branch "$@"
+else
+    echo >&2 "${0##*/}: no tags found at $1; fetching latest commit"
+    exec git clone --depth=1 "$@"
+fi
