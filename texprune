@@ -40,9 +40,9 @@
 #   directory structure would also be copied.  texprune then copies all
 #   the essential files from <src_dir> into <dst_dir>.
 #
-#   Obviously, texprune does not cover all use cases, and is heavily
-#   tailored to suit my workflow.  For this reason, it should not be
-#   used without extensive testing.
+#   Obviously, texprune does not cover all use cases, is heavily
+#   tailored to suit my workflow, and is a bloated mess.  For this
+#   reason, it should not be used without extensive testing.
 #
 # DEPENDENCIES
 #
@@ -209,9 +209,9 @@ cp_tree() {
     main=$(get_main_tex .)
 
     # Start with a "clean" tree.
-    rm -rf *.log *.aux *.bbl *.blg *.out latex.out
+    rm -rf *.log *.aux *.bbl *.blg *.out latex.out .latex
 
-    # Compile main LaTeX to ensure the presence of *.log and *.bbl files.
+    # Compile main .tex file to ensure the presence of *.log and *.bbl files.
     if command -v latexmk &>/dev/null
     then
         echo >&2 "${0##*/}: compiling main .tex file '$main' using latexmk"
@@ -219,7 +219,6 @@ cp_tree() {
         latexmk -norc -pdf -ps- -dvi- -pdflatex='pdflatex -interaction=nonstopmode' "$main" &>/dev/null
     else
         echo >&2 "${0##*/}: compiling main .tex file '$main' using pdflatex"
-        rm -f *.log *.aux *.bbl
         pdflatex -interaction=nonstopmode "$main" &>/dev/null
         bibtex -terse "${main%.*}" &>/dev/null
         pdflatex -interaction=nonstopmode "$main" &>/dev/null
@@ -283,11 +282,11 @@ cp_tree() {
         if [[ -f "$bbl" ]]
         then
             tmp="texprune-merged-$$.tex"
-            sed '/\\bibliography{[^}]*}/Q' "$main"   >>"$tmp"
-            echo -e '\n% --- bibliography --- %\n'   >>"$tmp"
-            cat "$bbl" | sed '/^%/d'                 >>"$tmp"
-            echo -e '\n% -------------------- %\n'   >>"$tmp"
-            sed '1,/\\bibliography{[^}]*}/d' "$main" >>"$tmp"
+            sed '/\\bibliography{[^}]*}/Q' "$main"                     >> "$tmp"
+            echo -e '\n% --- bibliography (added by texprune) --- %\n' >> "$tmp"
+            cat "$bbl" | sed '/^%/d'                                   >> "$tmp"
+            echo -e '\n% ---------------------------------------- %\n' >> "$tmp"
+            sed '1,/\\bibliography{[^}]*}/d' "$main"                   >> "$tmp"
             mv -f "$tmp" "$main"
             rm -f "$bbl"
         else
