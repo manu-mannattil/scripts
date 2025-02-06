@@ -1,0 +1,340 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# librename is a Python 3 script to clean file names of PDFs downloaded
+# from LibGen, Anna's Archive, etc.  It also supports looking up books
+# using the Google Books API and returning a clean, consistent file
+# name.  The basic usage is
+#
+#   librename <file>...
+#
+# More details can be found by using the --help option:
+#
+#   librename --help
+#
+# Requires the Python modules requests and titlecase.
+#
+
+import argparse
+import json
+import os
+import re
+import readline
+import requests
+import subprocess
+import sys
+import unicodedata
+from titlecase import titlecase
+
+GBOOKS_URL = "https://www.googleapis.com/books/v1/volumes"
+GBOOKS_KEY = os.getenv("GBOOKS_KEY")
+
+ACRONYMS = [
+    ["Quantum Field Theory", "QFT"],
+    ["Quantum Mechanics", "QM"],
+    ["General Relativity", "GR"],
+    ["General Theory of Relativity", "GTR"],
+]
+
+DETOX_REPLACEMENTS = [[r"C\+\+", "CPP"]]
+
+def stderr(string, *args, **kwargs):
+    print(string, *args, **kwargs, file=sys.stderr)
+
+def gbooks_search(query, max_results=5, sorting="relevance"):
+    """Search Google Books and return results as an interactive menu."""
+    # For documentation see:
+    # https://developers.google.com/books/docs/v1/reference/volumes/list
+    params = {
+        "q": query,
+        "key": GBOOKS_KEY,
+        "maxResults": max_results,
+        "orderBy": sorting,
+    }
+    resp = requests.get(GBOOKS_URL, params=params)
+    if resp.status_code == 200:
+        js = json.loads(resp.content)
+        if js["totalItems"] == 0:
+            stderr("{} failed to give any Google Books results".format(query))
+            return None
+    else:
+        stderr("Google API failure!")
+        return None
+
+    choices = list()
+    for item in js["items"]:
+        try:
+            authors = item["volumeInfo"]["authors"]
+            title = item["volumeInfo"]["title"]
+            title = re.sub(r"(:|\s+[-—–]+\s+).*", "", title)
+            year = item["volumeInfo"]["publishedDate"].split("-")[0]
+
+            if len(authors) > 3:
+                authors = authors[0].split(" ")[-1] + " et al."
+            else:
+                authors = ", ".join([a.split(" ")[-1] for a in authors])
+
+            choices.append([authors, title, year])
+        except KeyError:
+            continue
+
+    chosen = None
+    while chosen is None:
+        for i, choice in enumerate(choices):
+            authors, title, year = choice
+            stderr("{:d}. {}, “{}” ({})".format(i + 1, authors, title, year))
+
+        try:
+            chosen = int(input("\nenter selection (0 to quit): "))
+        except (ValueError, IndexError):
+            continue
+
+    if chosen == 0:
+        return None
+    else:
+        return choices[chosen - 1]
+
+def acrosub(title, expand=False):
+    """Unexpand/expand popular acronyms.
+
+    >>> acrosub("A book on Quantum Field Theory")
+    'A book on QFT'
+
+    >>> acrosub("A book on QFT and GTR", expand=True)
+    'A book on Quantum Field Theory and General Theory of Relativity'
+    """
+    title = re.sub(r"\s+", " ", title)
+    if expand:
+        for full, short in ACRONYMS:
+            title = re.sub(r"\b{}\b".format(short), full, title, flags=re.IGNORECASE)
+    else:
+        for full, short in ACRONYMS:
+            title = re.sub(r"\b{}\b".format(full), short, title, flags=re.IGNORECASE)
+
+    return title
+
+def input_with_default(prompt, default=""):
+    """Accept an input with default value filled in."""
+    readline.set_startup_hook(lambda: readline.insert_text(default))
+    try:
+        return input(prompt)
+    finally:
+        readline.set_startup_hook()
+
+def clean_title(title, lower_case=False):
+    """Convert title to title case and perform clean up.
+
+    Some words ought to be always lower:
+    >>> clean_title("author eT. al")
+    'Author et. al'
+    >>> clean_title("Book title 3Ed")
+    'Book Title 3ed'
+    >>> clean_title("louis De broglie")
+    'Louis de Broglie'
+
+    Names with hyphens.
+    >>> clean_title("Maxwell-calladine index Theorem")
+    'Maxwell-Calladine Index Theorem'
+
+    Some words must always be capital.
+    >>> clean_title("Ramond, qft primer, 1ED")
+    'Ramond, QFT Primer, 1ed'
+    """
+    if lower_case:
+        title = title.lower()
+    else:
+        title = titlecase(title)
+        # Always small.
+        title = re.sub(
+            r"\b(le|et|al|de|le|von|\d+e|\d+ed|v\d+|ver\d+)\b",
+            lambda m: m.group(1).lower(),
+            title,
+            flags=re.IGNORECASE,
+        )
+
+        # Always capitals.
+        title = re.sub(
+            r"\b(cm|em|faq|nasa|qcd|qed|qft|qm|readme|sm|uk|usa)\b",
+            lambda m: m.group(1).upper(),
+            title,
+            flags=re.IGNORECASE,
+        )
+
+    # Weed irrelevant words.
+    title = re.sub(
+        (r"\b(basics?|comprehensive|concepts? (in|on)|(first )?(course|primer) (in|on)|elements of|"
+         r"(an )?intro(duction)? to|introductory|notes? (in|on)|principles? of|short|"
+         r"the|topics (in|on)|tutorial (in|on)|fundamentals (of|in))\b"),
+        "",
+        title,
+        flags=re.IGNORECASE,
+    )
+    title = re.sub(r"^(an?)\b", "", title, flags=re.IGNORECASE)
+
+    return title
+
+class LibRename:
+
+    def __init__(self, lower_case=False, dry=False, gbooks=False, acronym=False, open_file=False):
+        self.lower_case = lower_case
+        self.dry = dry
+        self.gbooks = gbooks
+        self.acronym = acronym
+        self.open_file = open_file
+
+    def detox(self, name):
+        """Remove spaces and special characters."""
+        name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
+        name = name.decode("ASCII")
+
+        for orig, repl in DETOX_REPLACEMENTS:
+            name = re.sub(r"\b{}\b".format(orig), repl, name, flags=re.IGNORECASE)
+
+        name = re.sub(r"[\"']+", "", name)
+        name = re.sub(r"[^\w-]+", "_", name)
+        name = re.sub(r"_{2,}", "_", name)
+
+        return name
+
+    def from_name(self, name):
+        """Cleanup the filename of a file with the given filename.
+
+        >>> LibRename().from_name("2016 Author et al. Book Title.pdf")
+        'Author_et_al_Book_Title_2016.pdf'
+
+        >>> LibRename().from_name("1994_shankar_principles of qm.pdf")
+        'Shankar_QM_1994.pdf'
+        """
+        stem, ext = os.path.splitext(name)
+
+        # Remove all periods in stem.
+        stem = re.sub(r"[.]", "", stem)
+
+        # Convert _ to spaces so that \b can be used for word boundaries.
+        stem = re.sub(r"_+", " ", stem)
+        stem = clean_title(stem, self.lower_case)
+
+        if self.acronym:
+            stem = acrosub(stem)
+
+        # Year at the end before extension.
+        stem = re.sub(r"^(\d{4})[_ ]+(.*)", r"\g<2>_\g<1>", stem)
+
+        return self.detox(stem) + ext
+
+    def from_gbooks(self, name):
+        """Use Google Books to find the appropriate title."""
+        stem, ext = os.path.splitext(name)
+        stem = re.sub(r"(z-lib.?org|libgen.lc|libgen.li|b-ok.cc)", "", stem, flags=re.IGNORECASE)
+
+        # Delete parenthetical stuff, but preserve years and/or editions.
+        stem = re.sub(r"[\[({](\d+)[\])}]", r" \1", stem)
+        stem = re.sub(r"[\[({][^\])]*[\])}]", "", stem)
+
+        stem = re.sub(r"(_+|-+)", " ", stem)
+        stem = re.sub(r"\s+", " ", stem)
+        stem = re.sub(r"^\s+", "", stem)
+        stem = re.sub(r"\s$", "", stem)
+        stem = acrosub(stem, expand=True)
+
+        stderr("\nrenaming file ‘{}’".format(name))
+        stderr("\nGoogle Books query: ‘{}’; choices are:\n".format(stem))
+
+        result = gbooks_search(stem)
+        if not result:
+            return None
+
+        result[1] = clean_title(result[1], self.lower_case)
+        if self.acronym:
+            result[1] = acrosub(result[1])
+
+        name = self.detox("_".join(result)) + ext
+        choice = input("new name is ‘{}’; proceed [y/e/*]? ".format(name))
+
+        if choice[0].lower() == "y":
+            return name
+        elif choice[0].lower() == "e":
+            return input_with_default("edit name: ", name)
+        else:
+            return None
+
+    def rename(self, files):
+        """Rename a list of files."""
+        for name in files:
+            try:
+                if not os.path.isfile(name) or not os.access(name, os.W_OK):
+                    stderr("skipping {}; not a file".format(name))
+                    continue
+
+                src = os.path.normpath(name)
+                if self.open_file:
+                    subprocess.Popen(["xdg-open", src],
+                                     stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
+
+                dirname, basename = os.path.dirname(name), os.path.basename(name)
+
+                if self.gbooks:
+                    basename = self.from_gbooks(basename)
+                    if basename is None:
+                        continue
+                else:
+                    basename = self.from_name(basename)
+
+                dst = os.path.join(dirname, basename)
+                if src == dst:
+                    pass
+                elif not basename:
+                    stderr("unable to detox ‘{}’; empty filename".format(src))
+                elif os.path.exists(dst):
+                    stderr("\n‘{}’ exists".format(dst))
+                else:
+                    stderr("\n‘{}’ -> ‘{}’".format(src, dst))
+                    if not self.dry:
+                        os.replace(src, dst)
+
+            except Exception as e:
+                stderr(e)
+
+if __name__ == "__main__":
+    arg_parser = argparse.ArgumentParser(prog="librename")
+    arg_parser.add_argument(
+        "-o",
+        "--open-file",
+        action="store_true",
+        default=False,
+        help="open files using xdg-open",
+    )
+    arg_parser.add_argument(
+        "-a",
+        "--acronym",
+        action="store_true",
+        default=False,
+        help="use acronyms (e.g., Quantum Mechanics -> QM)",
+    )
+    arg_parser.add_argument(
+        "-c",
+        "--case",
+        action="store_true",
+        default=False,
+        help="convert filenames to sentence case",
+    )
+    arg_parser.add_argument(
+        "-g",
+        "--gbooks",
+        action="store_true",
+        default=False,
+        help="use Google Books to search for book name",
+    )
+    arg_parser.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="perform a trial run",
+    )
+    arg_parser.add_argument("files", nargs="+", help="input files")
+
+    args = arg_parser.parse_args()
+    lr = LibRename(args.case, args.dry_run, args.gbooks, args.acronym, args.open_file)
+    sys.exit(lr.rename(args.files))
