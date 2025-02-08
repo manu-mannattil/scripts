@@ -27,10 +27,15 @@ for string
 do
     if [[ "$string" =~ .*(10.[0-9]{4,9}/[-._;()/:a-zA-Z0-9]+) ]]
     then
-        response=$(curl -qsL -H 'Accept: application/x-bibtex' \
-                   "http://dx.doi.org/${BASH_REMATCH[1]}")
+        # This also works, but is slower.
+        # response=$(curl -qsL -H 'Accept: application/x-bibtex' \
+        #            "http://dx.doi.org/${BASH_REMATCH[1]}")
 
-        if [[ "$response" =~ ^@ ]]
+        # This seems to be slightly faster.
+        response=$(curl -qsL -H 'Accept: application/x-bibtex' \
+                   "http://api.crossref.org/works/${BASH_REMATCH[1]}/transform/application/x-bibtex")
+
+        if [[ "$response" =~ ^[[:space:]]*@ ]]
         then
             echo "$response" | expand -t 2
         else
