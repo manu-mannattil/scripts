@@ -32,7 +32,7 @@ import argparse
 LOWER = list("abcdefghjkmnpqrstuvwxyz")
 UPPER = list("ABCDEFGHJKMNPQRSTUVWXYZ")
 DIGIT = list("23456789")
-SPECIAL = list("!#$%&*+-/:<=>?@\~")
+SPECIAL = list(r"!#$%&*+-/:<=>?@\~")
 
 
 def generate(length=32, lower=True, upper=True, digit=True, special=True):
