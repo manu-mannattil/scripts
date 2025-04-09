@@ -14,6 +14,10 @@
 #   and broken packages, removes other temporary and/or log
 #   files, etc.
 #
+# SEE ALSO
+#
+#   https://github.com/gavinlyonsrepo/cylon
+#
 
 [[ $(id -u) == 0 ]] || exec sudo -- "$0" "$@"
 
@@ -26,6 +30,7 @@ find /var/log -type f -name '*.old' -delete
 
 # Remove systemd log files that are older than 1 day.
 # https://unix.stackexchange.com/q/130786
+journalctl --rotate
 journalctl --vacuum-time=1d
 
 # APT packages ---------------------------------------------------------
@@ -69,3 +74,9 @@ do
         nmcli con delete uuid "$uuid"
     fi
 done < <(nmcli --fields UUID,TIMESTAMP-REAL con show)
+
+# File system ----------------------------------------------------------
+
+# Free up unused blocks.
+# https://wiki.archlinux.org/title/Solid_state_drive
+fstrim -a -v
