@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# photorename is a Python script to canonicalize and rename media files
+# (i.e., photos and videos) based on their creation date.  EXIF data is
+# preferred when available, otherwise the date is extracted from the
+# filename.  If that fails as well, the file creation date is used.
+# The basic usage is
+#
+#   photorename <file>...
+#
+# For more details about photorename's options, run
+#
+#   photorename --help
+#
+# Dependencies: exiftool(1)
+#
+
+import os
+import re
+import sys
+from argparse import ArgumentParser, ArgumentTypeError
+from datetime import datetime
+from pathlib import Path
+from subprocess import run
+
+RE_DATE = [
+    r"(20\d{2})[\W_]*(0[1-9]|1[0-2])[\W_]*(0[1-9]|[12]\d|3[01])[\W_]*([0-2]\d)[\W_]*([0-5]\d)[\W_]*([0-5]\d)",
+    r"(20\d{2})[\W_]*(0[1-9]|1[0-2])[\W_]*(0[1-9]|[12]\d|3[01])",
+    r"(0[1-9]|[12]\d|3[01])[\W_]*(0[1-9]|1[0-2])[\W_]*(20\d{2})",
+    r"(0[1-9]|1[0-2])[\W_]*(0[1-9]|[12]\d|3[01])[\W_]*(20\d{2})"
+]
+
+RE_CANONICAL = r"(20\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])_([0-2]\d)([0-5]\d)([0-5]\d)_\d{3}\.[0-9a-z]+"
+
+EXIF_DATES = [
+    "CreateDate",
+    "CreationDate",
+    "DateTimeOriginal",
+    "MediaCreateDate",
+    "TrackCreateDate",
+]
+
+# exiftool command to run on a particular file.
+EXIFTOOL = "exiftool -s -s -s -d %s -" + " -".join(EXIF_DATES)
+EXIFTOOL = EXIFTOOL.split()
+
+def timestamp_to_date(s):
+    """Convert seconds since the Unix epoch to a date tuple."""
+    dt = datetime.fromtimestamp(s)
+    return dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
+
+def date_from_exif(name):
+    """Extract date using exiftool."""
+    # Extract all the relevant dates, and pick the oldest.
+    try:
+        out = run(EXIFTOOL + [name], capture_output=True, text=True)
+        date = out.stdout.split("\n")
+        date = filter(None, date)
+        date = min(map(int, date))
+        return timestamp_to_date(date)
+    except:
+        return False
+
+def rename(path, dry=True):
+    """Return Y, m, d, H, M, S date as a tuple."""
+    # Time isn't always available (e.g., WhatsApp photos that strip time
+    # info from both EXIF and filenames). In these situations, pick
+    # 3:00 PM as the default time.
+    H, M, S = 15, 00, 0
+
+    if re.match(RE_CANONICAL, path.name):
+        print(f"‘{path}’ already in canonical form; skipping", file=sys.stderr)
+        return None
+    elif r := date_from_exif(str(path.resolve())):
+        Y, m, d, H, M, S = r
+    # YYYYMMDDHHMMSS [e.g., scrot(1) screenshots]
+    elif r := re.search(RE_DATE[0], path.stem):
+        Y, m, d, H, M, S = map(int, r.groups())
+    # YYYYMMDD
+    elif r := re.search(RE_DATE[1], path.stem):
+        Y, m, d = map(int, r.groups())
+    # DDMMYYYY
+    elif r := re.search(RE_DATE[2], path.stem):
+        d, m, Y = map(int, r.groups())
+    # MMDDYYYY
+    elif r := re.search(RE_DATE[3], path.stem):
+        m, d, Y = map(int, r.groups())
+    # If all else fails, use file creation/modification time.
+    else:
+        s = min(path.stat().st_ctime, path.stat().st_mtime)
+        Y, m, d, H, M, S = timestamp_to_date(s)
+
+    ext = path.suffix.lower()
+    ext = re.sub(r"(jpeg|jpg|jpe|jif|jfif|jfi)", "jpg", ext)
+    ext = re.sub(r"tiff", "tif", ext)
+
+    i = 1
+    while True:
+        new_path = path.with_name(f"{Y}-{m:02}-{d:02}_{H:02}{M:02}{S:02}_{i:03}" + ext)
+        if not new_path.exists():
+            break
+        i += 1
+
+    print(f"‘{path}’ -> ‘{new_path}’", file=sys.stderr)
+    if not dry:
+        return path.rename(new_path)
+
+def rename_all(paths, recurse=True, dry=True):
+    """Rename all supplied files."""
+    for path in paths:
+        try:
+            if path.is_file():
+                rename(path, dry)
+            elif recurse and path.is_dir():
+                for sub_path in path.rglob("*"):
+                    if sub_path.is_file():
+                        rename(sub_path, dry)
+
+        except Exception as e:
+            print(e, file=sys.stderr)
+            return 1
+
+def arg_parser_valid(name):
+    """Check if the file is valid and can be accessed."""
+    path = Path(name)
+    if not path.exists():
+        raise ArgumentTypeError(f"‘{name}’ is not a valid path")
+    elif not os.access(path, os.W_OK):
+        raise ArgumentTypeError(f"‘{name}’ is not writable")
+    else:
+        return path
+
+if __name__ == "__main__":
+    arg_parser = ArgumentParser(
+        prog="photorename",
+        description="canonicalize and rename photos and videos",
+    )
+    arg_parser.add_argument(
+        "-r",
+        "--recurse",
+        action="store_true",
+        default=False,
+        help="recurse into directories",
+    )
+    arg_parser.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="perform a trial run",
+    )
+    arg_parser.add_argument("files", type=arg_parser_valid, nargs="+", help="input files")
+
+    args = arg_parser.parse_args()
+    sys.exit(rename_all(args.files, args.recurse, args.dry_run))

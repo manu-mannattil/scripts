@@ -81,6 +81,9 @@ Highlights
     a PDF file; [pdfsed](pdfsed) is a script that lets you edit PDF
     files using sed.
 
+-   [photorename](photorename) is a script to canonicalize and rename
+    media files based on their creation date.
+
 -   [plmgr](plmgr) is a media player agnostic M3U playlist manager.  Its
     only purpose is to add/delete the currently playing track to/from
     a playlist file.
