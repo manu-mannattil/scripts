@@ -45,6 +45,13 @@ set -eu
 tmpdir="${HOME}/.cache/mutt/attach"
 mkdir -p "$tmpdir"
 
+# If the file is already in $tmpdir, there's something wrong, so pass
+# it to xdg-open and quit.
+[ "$(dirname $(realpath "$1"))" = "$tmpdir" ] && {
+    nohup xdg-open "$1" >/dev/null </dev/null 2>&1 &
+    exit
+}
+
 # We need to sanitize filenames because xdg-open (depending on the
 # GNU/Linux distribution) often creates problems with percent-encoded
 # filenames.
