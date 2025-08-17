@@ -18,27 +18,29 @@
 #   Optional arguments
 #
 #     -h, --help     show this help message and exit
-#     -u, --upper    suppress upper characters
-#     -l, --lower    suppress lower characters
+#     -u, --upper    suppress uppercase characters
+#     -l, --lower    suppress lowercase characters
 #     -d, --digit    suppress digits
 #     -s, --special  suppress special characters
 #
 
-from __future__ import print_function
-from random import SystemRandom
-
 import argparse
+import secrets
 
-LOWER = list("abcdefghjkmnpqrstuvwxyz")
-UPPER = list("ABCDEFGHJKMNPQRSTUVWXYZ")
-DIGIT = list("23456789")
-SPECIAL = list(r"!#$%&*+-/:<=>?@\~")
+UPPER = r"ABCDEFGHJKMNPQRSTUVWXYZ"
+LOWER = r"abcdefghjkmnpqrstuvwxyz"
+DIGIT = r"23456789"
+SPECIAL = r"!#$%&*+-/:<=>?@\~"
 
-
-def generate(length=32, lower=True, upper=True, digit=True, special=True):
-    random = SystemRandom()
-    passwd = list()
-    char_pool = list()
+def generate(length: int = 32,
+             lower: bool = True,
+             upper: bool = True,
+             digit: bool = True,
+             special: bool = True) -> str:
+    """Generate a random password."""
+    random = secrets.SystemRandom()
+    passwd = []
+    char_pool = []
 
     # Ensure that characters of each kind are present at least once.
     if upper:
@@ -57,69 +59,52 @@ def generate(length=32, lower=True, upper=True, digit=True, special=True):
         passwd.append(random.choice(SPECIAL))
         char_pool.extend(SPECIAL)
 
-    passwd.extend([random.choice(char_pool) for i in range(length - len(passwd))])
+    passwd.extend([random.choice(char_pool) for _ in range(length - len(passwd))])
     random.shuffle(passwd)
 
     return "".join(passwd)
 
-
-def passwd_length(length):
-    length = int(length)
-    if length < 4:
-        raise argparse.ArgumentTypeError("must be >= 4")
-    else:
-        return length
-
-
 def main():
-    parser = argparse.ArgumentParser(
-        prog="pwgen", description="generate random passwords"
-    )
+    """Argument parsing."""
+    parser = argparse.ArgumentParser(prog="pwgen", description="generate random passwords")
 
-    parser.add_argument(
-        "length",
-        type=passwd_length,
-        default=32,
-        metavar="LENGTH",
-        nargs="?",
-        help="length of password (must be >= 4)",
-    )
-    parser.add_argument(
-        "-u",
-        "--upper",
-        action="store_false",
-        default=True,
-        help="suppress upper characters",
-    )
-    parser.add_argument(
-        "-l",
-        "--lower",
-        action="store_false",
-        default=True,
-        help="suppress lower characters",
-    )
-    parser.add_argument(
-        "-d", "--digit", action="store_false", default=True, help="suppress digits"
-    )
-    parser.add_argument(
-        "-s",
-        "--special",
-        action="store_false",
-        default=True,
-        help="suppress special characters",
-    )
+    parser.add_argument("length",
+                        type=int,
+                        default=32,
+                        metavar="LENGTH",
+                        nargs="?",
+                        help="length of password (>= 4)")
+    parser.add_argument("-u",
+                        "--upper",
+                        action="store_false",
+                        default=True,
+                        help="suppress uppercase characters")
+    parser.add_argument("-l",
+                        "--lower",
+                        action="store_false",
+                        default=True,
+                        help="suppress lowercase characters")
+    parser.add_argument("-d", "--digit", action="store_false", default=True, help="suppress digits")
+    parser.add_argument("-s",
+                        "--special",
+                        action="store_false",
+                        default=True,
+                        help="suppress special characters")
 
     args = parser.parse_args()
-    print(
-        generate(
-            length=args.length,
-            upper=args.upper,
-            lower=args.lower,
-            digit=args.digit,
-            special=args.special,
-        )
-    )
 
+    # Make sure that we have at least one character set to generate
+    # passwords from.
+    if not any((args.upper, args.lower, args.digit, args.special)):
+        parser.error("at least one of -u, -l, -d, or -s must be omitted")
+    elif args.length < 4:
+        parser.error(f"argument LENGTH: must be >=4")
+
+    print(generate(length=args.length,
+                   upper=args.upper,
+                   lower=args.lower,
+                   digit=args.digit,
+                   special=args.special))
 
 if __name__ == "__main__":
     main()
