@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# NAME
+#
+#   pdf2jpg - convert PDF files to JPEG
+#
+# SYNOPSIS
+#
+#   pdf2jpg [-d <dpi>] <file.pdf>
+#
+# OPTIONS
+#
+#   -d  <dpi>   set the DPI (default: 200)
+#
+# DEPENDENCIS
+#
+#   gs(1)
+#
+
+
+dpi=200
+while getopts ":d:" opt
+do
+    case "$opt" in
+        :)  echo >&2 "${0##*/}: $OPTARG requires an argument"
+            exit 1 ;;
+        \?) echo >&2 "${0##*/}: $OPTARG is not a valid option"
+            exit 1 ;;
+        d)  dpi="$OPTARG" ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+[ -f "$1" ] || {
+    echo >&2 "usage: ${0##*/} <file.pdf>"
+    exit 1
+}
+
+exec gs -dQUIET -dNOPAUSE -sDEVICE=jpeg -r"$dpi" -sOutputFile="${1%.*}"-%03d.jpg "$1" -c quit
