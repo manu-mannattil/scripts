@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# NAME
+#
+#   setcomm - comm(1) for files treated as sets
+#
+# SYNOPSIS
+#
+#   setcomm [-h] [-p PATTERN] [-s] FILE1 OP FILE2
+#
+# DESCRIPTION
+#
+#   setcomm is a tool with a similar use-case as the POSIX standard
+#   comm(1), but with a much more intuitive user interface.  Two files
+#   and a set operation are passed as the arguments.  The lines of the
+#   files are read into sets and the set operation is performed.  This
+#   way, one can find the lines unique to either of the files, common
+#   lines, and much more.
+#
+# ARGUMENTS AND OPTIONS
+#
+#   FILE1           first file
+#   OP              set operation (see below)
+#   FILE2           second file
+#
+#   -p, --pattern <regex>
+#                   regex filter pattern to "clean" each line (e.g.,
+#                   '#.*' strips all comments starting with a #)
+#   -s, --strip     strip each line (remove leading and trailing
+#                   whitespace, delete empty lines, etc.)
+#
+# The set operation (OP) could be one of the following:
+#
+#   + or | or U     union of FILE1 and FILE2 (pipe needs to be escaped as \|)
+#   - or D          difference between FILE1 and FILE2
+#   & or A          intersection of FILE1 and FILE2
+#                   (ampersand needs to be escaped as \&)
+#   ^               symmetric difference between FILE1 and FILE2
+#
+# EXAMPLES
+#
+#   Find the difference between the files:
+#       $ setcomm -sp '#.*' A.txt - B.txt
+#
+#   Find all lines common to both files:
+#       $ setcomm -sp '#.*' A.txt \& B.txt
+#
+
+import argparse
+import re
+
+def read(fd, strip=False, pattern=None):
+    """Read the lines of a file into a set."""
+    lines = set(fd.readlines())
+    fd.close()
+
+    if pattern:
+        p = re.compile(pattern, flags=re.IGNORECASE)
+        lines = {p.sub("", l) for l in lines}
+
+    if strip:
+        lines = {l.strip() for l in lines}
+    else:
+        lines = {l.strip("\n\r") for l in lines}
+
+    lines -= {""}
+    return lines
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="setcomm",
+                                     description="comm(1) for files treated as sets")
+
+    parser.add_argument("file1", metavar="FILE1", type=argparse.FileType("r"), help="first file")
+    parser.add_argument("op",
+                        metavar="OP",
+                        help="set operation",
+                        choices=("+", "|", "U", "-", "D", "&", "A", "^"))
+    parser.add_argument("file2", metavar="FILE2", type=argparse.FileType("r"), help="second file")
+    parser.add_argument("-p", "--pattern", default=None, help="filter pattern")
+    parser.add_argument("-s", "--strip", action="store_true", help="strip whitespace")
+
+    args = parser.parse_args()
+
+    A = read(args.file1, strip=args.strip, pattern=args.pattern)
+    B = read(args.file2, strip=args.strip, pattern=args.pattern)
+
+    if args.op in ("+", "|", "U"):
+        C = A | B
+    elif args.op in ("-", "D"):
+        C = A - B
+    elif args.op in ("&", "A"):
+        C = A & B
+    elif args.op in ("^", ):
+        C = A ^ B
+
+    C = "\n".join(sorted(C))
+    if not C.strip():
+        C = "{}"
+    print(C)
