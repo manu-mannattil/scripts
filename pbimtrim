@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# NAME
+#
+#   pbimtrim -- trim image in clipboard
+#
+# SYNOPSIS
+#
+#   pbimtrim
+#
+# DESCRIPTION
+#
+#   pbimtrim trims the current image in the clipboard and copies it
+#   back.  This is useful for pasting equations in LibreOffice Impress.
+#
+# DEPENDENCIES
+#
+#   xclip(1) and magick(1)
+#
+
+set -euo pipefail
+
+if ( xclip -selection clipboard -t image/png -o                 \
+        | magick png:- -trim +repage -transparent white png:-   \
+        | xclip -selection clipboard -t image/png ) &>/dev/null
+then
+    echo >&2 "${0##*/}: trimmed image"
+else
+    echo >&2 "${0##*/}: failed; is there an image in the clipboard?"
+    exit 1
+fi
