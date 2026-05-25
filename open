@@ -4,10 +4,10 @@
 #
 #   open - open files using xdg-open and background properly
 #
-# SYNOPSIS
+# SYNOPSI
 #
-#   open <file>...
-#   open <URL>...
+#   open <file>
+#   open <URL>
 #
 # SEE ALSO
 #
@@ -20,7 +20,4 @@
 }
 
 export XDG_CURRENT_DESKTOP="X-Generic"
-for arg
-do
-    nohup xdg-open "$arg" </dev/null >/dev/null 2>&1 &
-done
+nohup xdg-open "$1" </dev/null >/dev/null 2>&1 &
