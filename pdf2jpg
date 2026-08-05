@@ -6,20 +6,22 @@
 #
 # SYNOPSIS
 #
-#   pdf2jpg [-d <dpi>] <file.pdf>
+#   pdf2jpg [-d <dpi>] [-q <quality>] <file.pdf>
 #
 # OPTIONS
 #
-#   -d  <dpi>   set the DPI (default: 200)
+#   -d  <dpi>       set the DPI (default: 200)
+#   -q  <quality>   set the compression (default: 90)
 #
 # DEPENDENCIS
 #
-#   gs(1)
+#   magick(1)
 #
 
 
 dpi=200
-while getopts ":d:" opt
+quality=90
+while getopts ":d:q:" opt
 do
     case "$opt" in
         :)  echo >&2 "${0##*/}: $OPTARG requires an argument"
@@ -27,13 +29,20 @@ do
         \?) echo >&2 "${0##*/}: $OPTARG is not a valid option"
             exit 1 ;;
         d)  dpi="$OPTARG" ;;
+        q)  quality="$OPTARG" ;;
     esac
 done
 shift $(( OPTIND - 1 ))
 
 [ -f "$1" ] || {
-    echo >&2 "usage: ${0##*/} <file.pdf>"
+    echo >&2 "usage: ${0##*/} [-d <dpi>] [-q <quality>] <file.pdf>"
     exit 1
 }
 
-exec gs -dQUIET -dNOPAUSE -sDEVICE=jpeg -r"$dpi" -sOutputFile="${1%.*}"-%03d.jpg "$1" -c quit
+exec magick -density "$dpi"     \
+            -antialias "$1"     \
+            -background white   \
+            -alpha remove       \
+            -alpha off          \
+            -quality "$quality" \
+            "${1%.*}"-%03d.jpg
