@@ -42,7 +42,7 @@ from unicodedata import normalize
 # Use Google's "I'm Feeling Lucky" to "fuzzy" search for the right page.
 GOOGLE_IMFL = "https://www.google.com/search?hl=en&btnI&q="
 SEARCH_URL = GOOGLE_IMFL + "site:azlyrics.com"
-REDIRECT_RE = r"href=['\"](https?://www.azlyrics.com/[^'\"]*)['\"]"
+REDIRECT_RE = r"<a href[^>]*>(https?://www.azlyrics.com/[^>]*)</a>"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible)", "Referer": "www.google.com"}
 
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache/lyrics")
@@ -146,6 +146,7 @@ def main():
 
     if args.web_lyrics:
         subprocess.call([BROWSER, GOOGLE_IMFL + sanitize(keyword) + "+lyrics+genius.com"])
+        return
 
     if args.edit:
         subprocess.call([EDITOR, cache_file])
