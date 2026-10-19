@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# NAME
+#
+#   prettify - pretty print source files
+#
+# SYNOPSIS
+#
+#   prettify <file>
+#
+# DEPENDENCIES
+#
+#   jq(1), clang-format(1), yapf(1)
+#
+
+case "${1#*.}" in
+    json)
+        jq -M "." "$1" ;;
+    c|cc|cpp|h|hh|hxx)
+        clang-format "$1" ;;
+    py)
+        yapf "$1" ;;
+esac
