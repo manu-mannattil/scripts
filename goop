@@ -35,6 +35,10 @@ def rename(root, name, lower_case=False, dry=False):
     """Cleanup the filename of a file with the given root and name."""
     src = os.path.join(root, name)
 
+    # Don't bother with filenames like ".", "..", etc.
+    if re.match(r"^[.\/]*$", src):
+        return
+
     # Convert to ASCII after possible Unicode conversions.
     name = unicodedata.normalize("NFKD", name).encode("ASCII", "ignore")
     name = name.decode("ASCII")
@@ -72,7 +76,7 @@ def rename(root, name, lower_case=False, dry=False):
     if src == dst:
         pass
     elif not name:
-        print("unable to detox ‘{}’; empty filename".format(src), file=sys.stderr)
+        print("unable to detox ‘{}’; new filename empty".format(src), file=sys.stderr)
     elif os.path.exists(dst):
         print("‘{}’ exists".format(dst), file=sys.stderr)
     else:

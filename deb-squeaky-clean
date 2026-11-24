@@ -36,8 +36,12 @@ journalctl --vacuum-time=1d
 # APT packages ---------------------------------------------------------
 
 # Remove useless packages.
-apt --yes --purge autoremove
+apt --yes autoremove --purge
 apt --yes clean
+
+# Purge all kernels except the one you're running.
+IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep -v $(uname -r) | grep -E 'linux-image-[0-9]|linux-headers-[0-9]' | cut -d ' ' -f 3)
+[[ ${#pkgs[@]} == 0 ]] || dpkg --purge "${pkgs[@]}"
 
 # Purge residual packages.
 IFS=$'\n' read -r -d '' -a pkgs < <(dpkg --list | grep '^rc' | cut -d ' ' -f 3)

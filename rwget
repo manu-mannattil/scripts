@@ -19,6 +19,7 @@ exec wget --adjust-extension                                      \
           --execute robots=off                                    \
           --mirror                                                \
           --no-host-directories                                   \
+          --no-check-certificate                                  \
           --page-requisites                                       \
           --prefer-family=IPv4                                    \
           --random-wait                                           \

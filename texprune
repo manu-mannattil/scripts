@@ -259,6 +259,7 @@ cp_tree() {
 
     # Trailing slash after source is important to copy
     # just the contents.
+    mkdir -p "$2"
     rsync "${args[@]}" -- "$1/" "$2/"
 
     if [[ "$scrub" = "yes" ]]

@@ -10,7 +10,6 @@
 #
 # OPTIONS
 #
-#   -f            Force overwrite files.
 #   -q <quality>  LAME preset [0-9] or bitrate (e.g., 192k)
 #
 #   Preset       Average Kbit/s              Kbit/s range
@@ -61,11 +60,10 @@
 set -eu
 set -o pipefail
 
-force="no"
 quality=( -q:a 0 )
 partial="2MP3_PARTIAL_CONVERTION"
 
-while getopts ":fhq:" opt
+while getopts ":hq:" opt
 do
     case "$opt" in
         h)  echo >&2 "usage: 2mp3 [-q <quality>] <file>..."

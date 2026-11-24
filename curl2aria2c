@@ -10,7 +10,7 @@
 #
 # DESCRIPTION
 #
-#   curl2aria2ac converts a cURL command into an equivalent aria2c
+#   curl2aria2c converts a cURL command into an equivalent aria2c
 #   command and executes it.  The options supported currently are:
 #
 #       -H <header>

@@ -12,11 +12,11 @@
 # DESCRIPTION
 #
 #   setcomm is a tool with a similar use-case as the POSIX standard
-#   comm(1), but with a much more intuitive user interface.  Two files
-#   and a set operation are passed as the arguments.  The lines of the
-#   files are read into sets and the set operation is performed.  This
-#   way, one can find the lines unique to either of the files, common
-#   lines, and much more.
+#   comm(1), but with a much more intuitive user interface.  setcomm
+#   takes two files and a set operation as its arguments.  The lines of
+#   the files are read into sets and the set operation is performed.
+#   This way, one can find the lines unique to either of the files,
+#   common lines, and much more.
 #
 # ARGUMENTS AND OPTIONS
 #
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         C = A - B
     elif args.op in ("&", "A"):
         C = A & B
-    elif args.op in ("^", ):
+    elif args.op == "^":
         C = A ^ B
 
     C = "\n".join(sorted(C))

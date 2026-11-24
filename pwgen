@@ -13,7 +13,7 @@
 #
 #   Positional arguments
 #
-#     LENGTH         length of password (must be >= 4)
+#     LENGTH         length of password (default: 32, must be >= 4)
 #
 #   Optional arguments
 #
@@ -59,7 +59,7 @@ def generate(length: int = 32,
         passwd.append(random.choice(SPECIAL))
         char_pool.extend(SPECIAL)
 
-    passwd.extend([random.choice(char_pool) for _ in range(length - len(passwd))])
+    passwd.extend(random.choice(char_pool) for _ in range(length - len(passwd)))
     random.shuffle(passwd)
 
     return "".join(passwd)
@@ -73,7 +73,7 @@ def main():
                         default=32,
                         metavar="LENGTH",
                         nargs="?",
-                        help="length of password (>= 4)")
+                        help="length of password (default: 32, must be >= 4)")
     parser.add_argument("-u",
                         "--upper",
                         action="store_false",

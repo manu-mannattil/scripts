@@ -30,7 +30,7 @@ Highlights
     characters from the filenames of the supplied files and restrict
     each filename to the character set `[a-zA-Z0-9._-]`.
 
--   [com](com) is an NIH Python implementation of Tom Duff's
+-   [com](com) is an [NIH][nih] Python implementation of Tom Duff's
     [program][com] of the same name, with some changes in function.
     com scans the supplied files line by line and looks for comment
     lines beginning with the keyword "com:" and executes the rest of the
@@ -73,7 +73,8 @@ Highlights
     force you to click and link to read the full post) into full feeds.
 
 -   PDF manipulation scripts based on [PDFtk][pdftk] and Ghostscript:
-    [pdfbew](pdfbw) converts PDFs to grayscale;
+    [pdf2jpg](pdf2jpg) converts PDF file to JPEG;
+    [pdfbw](pdfbw) converts PDFs to grayscale;
     [pdfcompress](pdfcompress) compresses PDF files using Ghostscript;
     [pdfmetaedit](pdfmetaedit) is a script that will let you edit the
     metadata (e.g., "author" and "title" fields) of a PDF file using
@@ -109,6 +110,8 @@ Highlights
     passwords][password].  [passmenu](passmenu) helps you pick passwords
     using rofi or dmenu.
 
+-   [pwgen](pwgen) generates random passwords.
+
 -   [inkconv](inkconv) is a handy script that uses Inkscape to
     interconvert EMF, EPS, PDF, PNG, PS, SVG, WMF, and XAML files.
 
@@ -140,6 +143,7 @@ Public domain.  See the file UNLICENSE for more details.
 [goop]: https://www.forbes.com/sites/brucelee/2018/01/06/gwyneth-paltrows-goop-promotes-a-135-coffee-enema-kit
 [huecat]: https://raw.githubusercontent.com/manu-mannattil/assets/master/scripts/huecat.png
 [lolcat]: https://github.com/busyloop/lolcat
+[nih]: https://en.wikipedia.org/wiki/Not_invented_here
 [pass]: https://www.passwordstore.org
 [password]: https://www.schneier.com/blog/archives/2005/06/write_down_your.html
 [pdftk]: http://www.pdftk.com

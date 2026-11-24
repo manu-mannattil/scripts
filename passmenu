@@ -23,10 +23,10 @@ shopt -s nullglob globstar
 pick() {
     if command -v rofi &>/dev/null
     then
-        rofi -dmenu -p "pass" "$@"
+        rofi -dmenu -p "pass"
     elif command -v dmenu &>/dev/null
     then
-        dmenu "$@"
+        dmenu -p "pass"
     else
         echo >&2 "${0##*/}: either rofi or dmenu required"
         exit 1
@@ -42,5 +42,5 @@ files=( "$prefix"/**/*.gpg )
 files=( "${files[@]#"$prefix"/}" )
 files=( "${files[@]%.gpg}" )
 
-entry=$(printf '%s\n' "${files[@]}" | pick "$@")
+entry=$(printf '%s\n' "${files[@]}" | pick)
 exec pass "$@" "$entry"
